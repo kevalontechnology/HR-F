@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { UserCheck, Ticket, Search, Clock, CheckCircle2, Phone, User, GraduationCap, X, Sparkles } from 'lucide-react';
+import { UserCheck, Ticket, Search, Clock, CheckCircle2, Phone, User, GraduationCap, X, Sparkles, Users } from 'lucide-react';
 import { StageBadge } from '../components/common/Badge';
 import { Preloader } from '../components/common/Preloader';
 
@@ -60,8 +60,17 @@ export const Reception = () => {
       }
     } catch (err) {
       alert(err.message);
-    } finally {
+    } font: {
       setLoading(false);
+    }
+  };
+
+  const formatCheckInTime = (timeVal) => {
+    if (!timeVal) return 'N/A';
+    try {
+      return new Date(timeVal).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true });
+    } catch (e) {
+      return 'N/A';
     }
   };
 
@@ -268,8 +277,8 @@ export const Reception = () => {
                       <td className="font-semibold">{c.fullName}</td>
                       <td className="text-xs font-mono">{c.mobile}</td>
                       <td>{c.appliedProfileId?.title || c.appliedProfileName || 'N/A'}</td>
-                      <td className="text-xs text-gray-600">
-                        {c.checkInTime ? new Date(c.checkInTime).toLocaleTimeString() : 'N/A'}
+                      <td className="text-xs text-gray-600 font-mono font-semibold">
+                        {formatCheckInTime(c.checkInTime || c.updatedAt)}
                       </td>
                       <td><StageBadge stage={c.stage} /></td>
                     </tr>
