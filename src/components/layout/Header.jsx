@@ -3,6 +3,8 @@ import { useAuth } from '../../context/AuthContext';
 import { Bell, User, LogOut, Key, Building2, Menu, X } from 'lucide-react';
 import { Modal } from '../common/Modal';
 
+import logoImg from '../../Kevalon_Technology_Logo_Transparent.png';
+
 export const Header = ({ mobileMenuOpen, setMobileMenuOpen }) => {
   const { user, logout, authFetch } = useAuth();
   const [notifications, setNotifications] = useState([]);
@@ -74,9 +76,9 @@ export const Header = ({ mobileMenuOpen, setMobileMenuOpen }) => {
           {mobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
         </button>
 
-        <div className="bg-white/10 p-1.5 rounded-xs border border-white/20 hidden xs:block">
-          <Building2 size={18} className="text-white" />
-        </div>
+        {/* Kevalon Technology Logo */}
+        <img src={logoImg} alt="Kevalon Technology Logo" className="h-8 sm:h-9 w-auto object-contain drop-shadow-xs" />
+
         <div>
           <h1 className="font-bold text-xs sm:text-sm md:text-base tracking-wider uppercase leading-tight">
             Kevalon Technology

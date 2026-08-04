@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { Building2, Lock, User, KeyRound } from 'lucide-react';
+import { Lock, User, KeyRound } from 'lucide-react';
+import logoImg from '../Kevalon_Technology_Logo_Transparent.png';
 
 export const Login = () => {
   const { login, loading } = useAuth();
@@ -27,10 +28,8 @@ export const Login = () => {
       {/* Container */}
       <div className="w-full max-w-md bg-white border border-erp-border shadow-lg rounded-xs overflow-hidden">
         {/* Header Banner */}
-        <div className="bg-erp-primary text-white p-6 text-center border-b-4 border-erp-primaryHover">
-          <div className="inline-flex p-3 bg-white/10 rounded-xs mb-3 border border-white/20">
-            <Building2 size={32} />
-          </div>
+        <div className="bg-erp-primary text-white p-6 text-center border-b-4 border-erp-primaryHover flex flex-col items-center">
+          <img src={logoImg} alt="Kevalon Technology Logo" className="h-12 w-auto object-contain mb-2 drop-shadow-sm" />
           <h2 className="text-xl font-bold uppercase tracking-wider">Kevalon Technology</h2>
           <p className="text-xs text-gray-200 uppercase tracking-widest font-semibold mt-1">
             Recruitment CRM Enterprise Portal
