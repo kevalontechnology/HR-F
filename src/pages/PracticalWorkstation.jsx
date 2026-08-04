@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { Terminal, Send } from 'lucide-react';
+import { Terminal, CheckCircle, XCircle, Send, Users, Edit3 } from 'lucide-react';
 import { StageBadge } from '../components/common/Badge';
 
 export const PracticalWorkstation = () => {
@@ -8,26 +8,42 @@ export const PracticalWorkstation = () => {
   const [queueCandidates, setQueueCandidates] = useState([]);
   const [selectedCandidate, setSelectedCandidate] = useState(null);
   const [tasks, setTasks] = useState([]);
-  const [taskMarks, setTaskMarks] = useState({});
+  const [marks, setMarks] = useState({});
+  const [taskRemarks, setTaskRemarks] = useState({});
   const [generalRemarks, setGeneralRemarks] = useState('');
   const [verdict, setVerdict] = useState('PASS');
   const [loading, setLoading] = useState(false);
+
+  // Edit Stage State
+  const [editingCandidateStage, setEditingCandidateStage] = useState(null);
+  const [newStageValue, setNewStageValue] = useState('');
 
   const fetchPracticalQueue = async () => {
     try {
       const res = await authFetch('/api/candidates');
       if (res.success) {
-        const allPractical = (res.data || []).filter(c => 
-          c.stage === 'PRACTICAL_QUEUE' || c.stage === 'PRACTICAL_IN_PROGRESS' || c.stage === 'TECHNICAL_COMPLETED'
-        );
+        const userEmpId = user?.employeeId?._id ? user.employeeId._id.toString() : (user?.employeeId ? user.employeeId.toString() : '');
+        const userEmail = user?.email?.toLowerCase();
+        const isSuperAdmin = user?.role?.name === 'Super Admin';
 
-        if (user?.employeeId && user?.role?.name !== 'Super Admin') {
-          const empIdStr = user.employeeId._id ? user.employeeId._id.toString() : user.employeeId.toString();
+        const allCandidates = res.data || [];
+        const allPractical = allCandidates.filter(c => {
+          if (c.stage === 'SELECTED' || c.stage === 'REJECTED' || c.stage === 'HOLD') return false;
+          return c.stage.includes('PRACTICAL') || c.stage === 'TECHNICAL_COMPLETED' || c.assignedPracticalInterviewer;
+        });
+
+        if (!isSuperAdmin && (userEmpId || userEmail)) {
           const myPractical = allPractical.filter(c => {
-            const assignedId = c.assignedPracticalInterviewer?._id 
+            if (!c.assignedPracticalInterviewer) return true; // Show unassigned
+            
+            const assignedIdStr = c.assignedPracticalInterviewer._id 
               ? c.assignedPracticalInterviewer._id.toString() 
-              : c.assignedPracticalInterviewer?.toString();
-            return assignedId === empIdStr || !assignedId;
+              : c.assignedPracticalInterviewer.toString();
+            
+            if (userEmpId && assignedIdStr === userEmpId) return true;
+            if (c.assignedPracticalInterviewer.email && userEmail && c.assignedPracticalInterviewer.email.toLowerCase() === userEmail) return true;
+            
+            return false;
           });
           setQueueCandidates(myPractical);
         } else {
@@ -52,11 +68,14 @@ export const PracticalWorkstation = () => {
       const res = await authFetch(`/api/interviews/practical/${candidate._id}/tasks`);
       if (res.success) {
         setTasks(res.tasks || []);
-        const init = {};
+        const initMarks = {};
+        const initRemarks = {};
         (res.tasks || []).forEach(t => {
-          init[t._id] = { marksObtained: 80, remarks: '' };
+          initMarks[t._id] = t.maxMarks || 50;
+          initRemarks[t._id] = '';
         });
-        setTaskMarks(init);
+        setMarks(initMarks);
+        setTaskRemarks(initRemarks);
       }
     } catch (err) {
       alert(err.message);
@@ -65,36 +84,53 @@ export const PracticalWorkstation = () => {
     }
   };
 
-  const handleTaskMarkChange = (tId, field, val) => {
-    setTaskMarks(prev => ({
-      ...prev,
-      [tId]: { ...prev[tId], [field]: val }
-    }));
+  const handleStageChange = async (candidateId, stageToSet) => {
+    try {
+      const res = await authFetch(`/api/candidates/${candidateId}`, {
+        method: 'PUT',
+        body: JSON.stringify({ stage: stageToSet })
+      });
+      if (res.success) {
+        alert(`Candidate stage updated to ${stageToSet}`);
+        setEditingCandidateStage(null);
+        fetchPracticalQueue();
+        if (selectedCandidate && selectedCandidate._id === candidateId) {
+          setSelectedCandidate({ ...selectedCandidate, stage: stageToSet });
+        }
+      } else {
+        alert(res.message || 'Failed to update candidate stage');
+      }
+    } catch (err) {
+      alert(err.message);
+    }
   };
 
-  const handleSubmitEvaluation = async () => {
+  const handleSubmitEvaluation = async (e) => {
+    e.preventDefault();
     if (!selectedCandidate) return;
+
     setLoading(true);
     try {
-      const payload = {
-        tasks: tasks.map(t => ({
-          taskId: t._id,
-          taskTitle: t.taskTitle,
-          maxMarks: t.maxMarks || 100,
-          marksObtained: Number(taskMarks[t._id]?.marksObtained || 0),
-          remarks: taskMarks[t._id]?.remarks || ''
-        })),
-        verdict,
-        remarks: generalRemarks
-      };
+      const taskResponses = Object.keys(marks).map(tId => ({
+        taskId: tId,
+        taskTitle: tasks.find(t => t._id === tId)?.title || '',
+        maxMarks: tasks.find(t => t._id === tId)?.maxMarks || 50,
+        marksObtained: Number(marks[tId]) || 0,
+        remarks: taskRemarks[tId] || ''
+      }));
 
-      const res = await authFetch(`/api/interviews/practical/${selectedCandidate._id}/evaluate`, {
+      const res = await authFetch('/api/interviews/practical/submit', {
         method: 'POST',
-        body: JSON.stringify(payload)
+        body: JSON.stringify({
+          candidateId: selectedCandidate._id,
+          verdict,
+          remarks: generalRemarks,
+          tasks: taskResponses
+        })
       });
 
       if (res.success) {
-        alert(res.message);
+        alert(`Practical task evaluation submitted! Verdict: ${verdict}`);
         setSelectedCandidate(null);
         setTasks([]);
         fetchPracticalQueue();
@@ -109,151 +145,263 @@ export const PracticalWorkstation = () => {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
+      {/* Title Header */}
       <div className="bg-white p-4 border border-erp-border rounded-xs shadow-xs flex items-center justify-between">
         <div>
           <h2 className="text-base font-bold text-erp-primary uppercase tracking-wide flex items-center gap-2">
-            <Terminal size={18} /> Practical Task Interviewer Workstation
+            <Terminal size={18} /> Practical Task Workstation
           </h2>
           <p className="text-xs text-gray-600">
-            Random 2 Practical Tasks drawer, live execution evaluation & code marking.
+            Evaluate coding tasks, review live code implementations, edit candidate stage, and route candidate.
           </p>
         </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {/* Practical Queue List */}
+        {/* Candidate Queue Sidebar */}
         <div className="bg-white border border-erp-border rounded-xs shadow-xs p-4 space-y-3">
-          <h3 className="text-xs font-bold text-erp-primary uppercase tracking-wider border-b pb-2 flex items-center justify-between">
-            <span>Practical Queue Candidates</span>
-            <span className="bg-erp-primary text-white px-2 py-0.5 rounded text-[10px]">{queueCandidates.length}</span>
-          </h3>
+          <div className="flex items-center justify-between border-b pb-2">
+            <h3 className="text-xs font-bold text-erp-primary uppercase tracking-wider flex items-center gap-1.5">
+              <Users size={15} /> Practical Queue ({queueCandidates.length})
+            </h3>
+            <span className="text-[10px] text-gray-500 font-semibold">Assigned & Active</span>
+          </div>
 
-          <div className="space-y-2 max-h-[500px] overflow-y-auto">
+          <div className="space-y-2 max-h-[600px] overflow-y-auto pr-1">
             {queueCandidates.length === 0 ? (
-              <p className="text-xs text-gray-500 text-center py-4">No candidates in practical queue.</p>
+              <div className="p-4 text-center text-xs text-gray-500">
+                No candidates currently assigned in your practical task queue.
+              </div>
             ) : (
-              queueCandidates.map(c => (
-                <div
-                  key={c._id}
-                  onClick={() => loadCandidateTasks(c)}
-                  className={`p-3 border rounded-xs cursor-pointer text-xs transition ${
-                    selectedCandidate?._id === c._id
-                      ? 'border-erp-primary bg-purple-50/80 font-semibold'
-                      : 'hover:bg-gray-50'
-                  }`}
-                >
-                  <div className="flex items-center justify-between">
-                    <span className="font-bold text-erp-primary">{c.fullName}</span>
-                    <span className="text-[10px] bg-gray-200 px-1.5 py-0.5 rounded">{c.tokenNumber}</span>
+              queueCandidates.map(c => {
+                const isSelected = selectedCandidate?._id === c._id;
+                return (
+                  <div
+                    key={c._id}
+                    className={`p-3 rounded border text-xs space-y-2 transition ${
+                      isSelected
+                        ? 'border-erp-primary bg-purple-50/60 shadow-xs'
+                        : 'border-gray-200 hover:bg-gray-50'
+                    }`}
+                  >
+                    <div className="flex items-start justify-between">
+                      <div>
+                        <div className="font-bold text-gray-900">{c.fullName}</div>
+                        <div className="text-[10px] text-erp-primary font-mono">{c.candidateCode}</div>
+                      </div>
+                      <StageBadge stage={c.stage} />
+                    </div>
+
+                    <div className="text-[11px] text-gray-600 space-y-0.5">
+                      <div>Profile: <strong>{c.appliedProfileId?.title || c.appliedProfileName}</strong></div>
+                      <div>Tech Verdict: <strong className="text-green-700">{c.technicalEvaluation?.verdict || 'PASS'}</strong></div>
+                      {c.assignedPracticalInterviewer && (
+                        <div className="text-[10px] text-purple-700 font-semibold">
+                          Assigned to: {c.assignedPracticalInterviewer.fullName || 'You'}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Action Buttons: Start Task Test & Edit Stage */}
+                    <div className="flex items-center gap-2 pt-1 border-t border-gray-200">
+                      <button
+                        onClick={() => loadCandidateTasks(c)}
+                        className={`flex-1 py-1.5 text-xs font-bold rounded flex items-center justify-center gap-1 transition ${
+                          isSelected ? 'bg-purple-800 text-white' : 'bg-gray-100 hover:bg-purple-800 hover:text-white text-gray-800'
+                        }`}
+                      >
+                        <Terminal size={13} /> {isSelected ? 'Evaluating Code' : 'Evaluate Task'}
+                      </button>
+
+                      <button
+                        onClick={() => {
+                          setEditingCandidateStage(c._id);
+                          setNewStageValue(c.stage);
+                        }}
+                        className="px-2 py-1.5 text-[11px] border border-gray-300 hover:bg-gray-200 rounded text-gray-700 font-semibold flex items-center gap-1"
+                        title="Edit Stage"
+                      >
+                        <Edit3 size={12} /> Stage
+                      </button>
+                    </div>
+
+                    {/* Inline Quick Stage Editor */}
+                    {editingCandidateStage === c._id && (
+                      <div className="p-2 bg-yellow-50 border border-yellow-300 rounded space-y-2 text-xs">
+                        <label className="block text-[10px] font-bold text-yellow-900 uppercase">
+                          Edit Round / Stage for {c.fullName}:
+                        </label>
+                        <select
+                          value={newStageValue}
+                          onChange={e => setNewStageValue(e.target.value)}
+                          className="erp-select text-xs font-bold"
+                        >
+                          <option value="PRACTICAL_QUEUE">PRACTICAL_QUEUE (Practical Round)</option>
+                          <option value="PRACTICAL_IN_PROGRESS">PRACTICAL_IN_PROGRESS</option>
+                          <option value="PRACTICAL_COMPLETED">PRACTICAL_COMPLETED</option>
+                          <option value="HR_QUEUE">HR_QUEUE (HR Round)</option>
+                          <option value="SELECTED">SELECTED (Hired)</option>
+                          <option value="HOLD">HOLD (On Hold)</option>
+                          <option value="REJECTED">REJECTED (Failed)</option>
+                        </select>
+
+                        <div className="flex justify-end gap-1 pt-1">
+                          <button
+                            onClick={() => setEditingCandidateStage(null)}
+                            className="px-2 py-0.5 bg-gray-200 text-gray-800 text-[10px] rounded"
+                          >
+                            Cancel
+                          </button>
+                          <button
+                            onClick={() => handleStageChange(c._id, newStageValue)}
+                            className="px-2 py-0.5 bg-erp-primary text-white text-[10px] rounded font-bold"
+                          >
+                            Save Stage
+                          </button>
+                        </div>
+                      </div>
+                    )}
                   </div>
-                  <div className="text-[11px] text-gray-600 mt-1">{c.appliedProfileId?.title}</div>
-                </div>
-              ))
+                );
+              })
             )}
           </div>
         </div>
 
-        {/* Practical Tasks Drawer Form */}
-        <div className="md:col-span-2 bg-white border border-erp-border rounded-xs shadow-xs p-5">
+        {/* Practical Evaluation Workstation Form */}
+        <div className="md:col-span-2 bg-white border border-erp-border rounded-xs shadow-xs p-5 space-y-4">
           {!selectedCandidate ? (
-            <div className="text-center py-12 text-gray-500 text-xs">
-              <Terminal size={36} className="mx-auto text-gray-300 mb-2" />
-              Select a candidate from the queue to open their Random 2 Practical Tasks drawer.
+            <div className="p-12 text-center text-gray-500 space-y-2">
+              <Terminal size={40} className="mx-auto text-gray-400" />
+              <h3 className="font-bold text-sm text-gray-700">No Candidate Selected</h3>
+              <p className="text-xs">Select a candidate from the queue to load practical tasks and code marking matrix.</p>
             </div>
           ) : (
-            <div className="space-y-5">
-              <div className="bg-erp-bg p-3 rounded border border-erp-border flex items-center justify-between">
+            <form onSubmit={handleSubmitEvaluation} className="space-y-4 text-xs">
+              {/* Selected Candidate Header Dossier */}
+              <div className="p-3 bg-purple-50 border border-purple-200 rounded flex items-center justify-between">
                 <div>
-                  <h3 className="text-sm font-bold text-erp-primary">{selectedCandidate.fullName}</h3>
-                  <p className="text-xs text-gray-600">{selectedCandidate.appliedProfileId?.title} | Token: {selectedCandidate.tokenNumber}</p>
+                  <h4 className="font-bold text-sm text-purple-900">{selectedCandidate.fullName}</h4>
+                  <p className="text-xs text-purple-700 font-mono">{selectedCandidate.candidateCode} | {selectedCandidate.appliedProfileId?.title || selectedCandidate.appliedProfileName}</p>
                 </div>
-                <StageBadge stage={selectedCandidate.stage} />
-              </div>
-
-              {/* Tasks List */}
-              <div className="space-y-4">
-                <h4 className="text-xs font-bold text-erp-primary uppercase border-b pb-1">
-                  Assigned Random 2 Practical Tasks
-                </h4>
-
-                {tasks.map((t, idx) => (
-                  <div key={t._id} className="p-3 border border-gray-200 rounded bg-gray-50 space-y-2 text-xs">
-                    <div className="flex items-center justify-between">
-                      <span className="font-bold text-purple-900">Task #{idx + 1}: {t.taskTitle}</span>
-                      <span className="text-[10px] bg-purple-100 text-purple-800 px-2 py-0.5 rounded font-semibold">
-                        Est Time: {t.expectedTimeMinutes} mins | Max Marks: {t.maxMarks}
-                      </span>
-                    </div>
-
-                    <p className="text-gray-700 bg-white p-2 border rounded text-[11px]">{t.taskDescription}</p>
-
-                    <div className="grid grid-cols-2 gap-4 pt-2">
-                      <div>
-                        <label className="block text-[11px] font-semibold text-gray-700 mb-1">Marks Awarded (Max: {t.maxMarks})</label>
-                        <input
-                          type="number"
-                          max={t.maxMarks}
-                          min="0"
-                          value={taskMarks[t._id]?.marksObtained ?? 80}
-                          onChange={e => handleTaskMarkChange(t._id, 'marksObtained', e.target.value)}
-                          className="erp-input"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-[11px] font-semibold text-gray-700 mb-1">Code Quality / Execution Remarks</label>
-                        <input
-                          type="text"
-                          placeholder="Feedback..."
-                          value={taskMarks[t._id]?.remarks || ''}
-                          onChange={e => handleTaskMarkChange(t._id, 'remarks', e.target.value)}
-                          className="erp-input"
-                        />
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              {/* Verdict & Submit */}
-              <div className="border-t pt-4 space-y-3">
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-xs font-semibold text-gray-700 mb-1">Practical Stage Verdict</label>
-                    <select
-                      value={verdict}
-                      onChange={e => setVerdict(e.target.value)}
-                      className="erp-select font-bold"
-                    >
-                      <option value="PASS">PASS (Proceed to HR Stage)</option>
-                      <option value="HOLD">HOLD (Put Candidate on Hold)</option>
-                      <option value="FAIL">FAIL (Reject Candidate)</option>
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-semibold text-gray-700 mb-1">General Remarks</label>
-                    <input
-                      type="text"
-                      value={generalRemarks}
-                      onChange={e => setGeneralRemarks(e.target.value)}
-                      className="erp-input"
-                    />
-                  </div>
-                </div>
-
-                <div className="flex justify-end gap-2">
-                  <button onClick={() => setSelectedCandidate(null)} className="btn-erp-secondary">Cancel</button>
-                  <button
-                    onClick={handleSubmitEvaluation}
-                    disabled={loading}
-                    className="btn-erp-primary flex items-center gap-1.5"
+                
+                <div className="flex items-center gap-2">
+                  <StageBadge stage={selectedCandidate.stage} />
+                  <select
+                    value={selectedCandidate.stage}
+                    onChange={e => handleStageChange(selectedCandidate._id, e.target.value)}
+                    className="erp-select text-xs font-bold text-purple-900"
                   >
-                    <Send size={14} /> Submit Practical Evaluation
+                    <option value="PRACTICAL_QUEUE">Stage: Practical Queue</option>
+                    <option value="PRACTICAL_IN_PROGRESS">Stage: Practical In Progress</option>
+                    <option value="PRACTICAL_COMPLETED">Stage: Practical Completed</option>
+                    <option value="HR_QUEUE">Push to: HR Queue</option>
+                    <option value="SELECTED">Decision: Selected</option>
+                    <option value="HOLD">Decision: Hold</option>
+                    <option value="REJECTED">Decision: Rejected</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Tasks List Drawer */}
+              <div className="space-y-3">
+                <h4 className="font-bold text-purple-900 uppercase border-b pb-1">Practical Task Bank (Assigned Tasks)</h4>
+                
+                {loading ? (
+                  <div className="p-6 text-center text-gray-500">Loading practical tasks...</div>
+                ) : tasks.length === 0 ? (
+                  <div className="p-4 text-center text-red-600 bg-red-50 rounded">
+                    No practical tasks found for this profile. You can still grade candidate performance below.
+                  </div>
+                ) : (
+                  tasks.map((t, idx) => (
+                    <div key={t._id} className="p-3 border border-purple-200 rounded space-y-2 bg-purple-50/20">
+                      <div className="flex items-start justify-between gap-2">
+                        <span className="font-bold text-purple-950 text-sm">Task #{idx + 1}: {t.title}</span>
+                        <span className="px-2 py-0.5 bg-purple-200 text-purple-900 text-[10px] font-bold rounded">
+                          Max Marks: {t.maxMarks || 50}
+                        </span>
+                      </div>
+
+                      <p className="text-xs text-gray-700 bg-white p-2 border rounded font-mono">
+                        {t.problemStatement}
+                      </p>
+
+                      <div className="grid grid-cols-3 gap-3 pt-1">
+                        <div>
+                          <label className="block text-[10px] font-bold text-gray-700 mb-1">
+                            Marks Obtained (Out of {t.maxMarks || 50})
+                          </label>
+                          <input
+                            type="number"
+                            max={t.maxMarks || 50}
+                            min={0}
+                            value={marks[t._id] || 0}
+                            onChange={e => setMarks({ ...marks, [t._id]: e.target.value })}
+                            className="erp-input font-bold text-purple-900"
+                          />
+                        </div>
+                        <div className="col-span-2">
+                          <label className="block text-[10px] font-bold text-gray-700 mb-1">
+                            Code Quality & Logic Remarks
+                          </label>
+                          <input
+                            type="text"
+                            placeholder="Code architecture, error handling, syntax..."
+                            value={taskRemarks[t._id] || ''}
+                            onChange={e => setTaskRemarks({ ...taskRemarks, [t._id]: e.target.value })}
+                            className="erp-input text-xs"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+
+              {/* General Remarks & Final Verdict */}
+              <div className="p-4 border rounded bg-gray-50 space-y-3">
+                <div>
+                  <label className="block font-bold text-gray-700 mb-1">Overall Practical Task Summary</label>
+                  <textarea
+                    rows={2}
+                    value={generalRemarks}
+                    onChange={e => setGeneralRemarks(e.target.value)}
+                    placeholder="Candidate execution speed, problem solving skills..."
+                    className="erp-input text-xs"
+                  />
+                </div>
+
+                <div className="flex items-center justify-between pt-2">
+                  <div className="flex items-center gap-3">
+                    <span className="font-bold text-gray-800">Practical Verdict:</span>
+                    {['PASS', 'HOLD', 'FAIL'].map(v => (
+                      <label key={v} className="flex items-center gap-1 font-bold text-xs cursor-pointer">
+                        <input
+                          type="radio"
+                          name="p_verdict"
+                          value={v}
+                          checked={verdict === v}
+                          onChange={() => setVerdict(v)}
+                        />
+                        <span className={v === 'PASS' ? 'text-green-700' : v === 'HOLD' ? 'text-yellow-700' : 'text-red-700'}>
+                          {v}
+                        </span>
+                      </label>
+                    ))}
+                  </div>
+
+                  <button
+                    type="submit"
+                    disabled={loading}
+                    className="bg-purple-800 hover:bg-purple-900 text-white py-2 px-4 rounded text-xs flex items-center gap-1 font-bold"
+                  >
+                    <Send size={14} /> Submit Practical Marks
                   </button>
                 </div>
               </div>
-            </div>
+            </form>
           )}
         </div>
       </div>

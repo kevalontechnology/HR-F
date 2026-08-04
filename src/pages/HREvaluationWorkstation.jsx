@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { UserCheck, Star, Send } from 'lucide-react';
+import { UserCheck, CheckCircle, XCircle, Send, Users, Star, Edit3 } from 'lucide-react';
 import { StageBadge } from '../components/common/Badge';
 
 export const HREvaluationWorkstation = () => {
@@ -8,28 +8,43 @@ export const HREvaluationWorkstation = () => {
   const [queueCandidates, setQueueCandidates] = useState([]);
   const [selectedCandidate, setSelectedCandidate] = useState(null);
   
-  const [commScore, setCommScore] = useState(4);
-  const [behScore, setBehScore] = useState(4);
-  const [confScore, setConfScore] = useState(4);
+  const [communicationScore, setCommunicationScore] = useState(4);
+  const [behaviorScore, setBehaviorScore] = useState(4);
+  const [confidenceScore, setConfidenceScore] = useState(4);
   const [verdict, setVerdict] = useState('SELECTED');
   const [remarks, setRemarks] = useState('');
   const [loading, setLoading] = useState(false);
+
+  // Edit Stage State
+  const [editingCandidateStage, setEditingCandidateStage] = useState(null);
+  const [newStageValue, setNewStageValue] = useState('');
 
   const fetchHrQueue = async () => {
     try {
       const res = await authFetch('/api/candidates');
       if (res.success) {
-        const allHr = (res.data || []).filter(c => 
-          c.stage === 'HR_QUEUE' || c.stage === 'HR_IN_PROGRESS' || c.stage === 'PRACTICAL_COMPLETED'
-        );
+        const userEmpId = user?.employeeId?._id ? user.employeeId._id.toString() : (user?.employeeId ? user.employeeId.toString() : '');
+        const userEmail = user?.email?.toLowerCase();
+        const isSuperAdmin = user?.role?.name === 'Super Admin';
 
-        if (user?.employeeId && user?.role?.name !== 'Super Admin') {
-          const empIdStr = user.employeeId._id ? user.employeeId._id.toString() : user.employeeId.toString();
+        const allCandidates = res.data || [];
+        const allHr = allCandidates.filter(c => {
+          if (c.stage === 'SELECTED' || c.stage === 'REJECTED' || c.stage === 'HOLD') return false;
+          return c.stage.includes('HR') || c.stage === 'PRACTICAL_COMPLETED' || c.assignedHrInterviewer;
+        });
+
+        if (!isSuperAdmin && (userEmpId || userEmail)) {
           const myHr = allHr.filter(c => {
-            const assignedId = c.assignedHrInterviewer?._id 
+            if (!c.assignedHrInterviewer) return true; // Show unassigned
+            
+            const assignedIdStr = c.assignedHrInterviewer._id 
               ? c.assignedHrInterviewer._id.toString() 
-              : c.assignedHrInterviewer?.toString();
-            return assignedId === empIdStr || !assignedId;
+              : c.assignedHrInterviewer.toString();
+            
+            if (userEmpId && assignedIdStr === userEmpId) return true;
+            if (c.assignedHrInterviewer.email && userEmail && c.assignedHrInterviewer.email.toLowerCase() === userEmail) return true;
+            
+            return false;
           });
           setQueueCandidates(myHr);
         } else {
@@ -47,31 +62,51 @@ export const HREvaluationWorkstation = () => {
     return () => clearInterval(interval);
   }, [user]);
 
+  const handleStageChange = async (candidateId, stageToSet) => {
+    try {
+      const res = await authFetch(`/api/candidates/${candidateId}`, {
+        method: 'PUT',
+        body: JSON.stringify({ stage: stageToSet })
+      });
+      if (res.success) {
+        alert(`Candidate stage updated to ${stageToSet}`);
+        setEditingCandidateStage(null);
+        fetchHrQueue();
+        if (selectedCandidate && selectedCandidate._id === candidateId) {
+          setSelectedCandidate({ ...selectedCandidate, stage: stageToSet });
+        }
+      } else {
+        alert(res.message || 'Failed to update candidate stage');
+      }
+    } catch (err) {
+      alert(err.message);
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!selectedCandidate) return;
 
     setLoading(true);
     try {
-      const payload = {
-        communicationScore: commScore,
-        behaviorScore: behScore,
-        confidenceScore: confScore,
-        verdict,
-        remarks
-      };
-
-      const res = await authFetch(`/api/interviews/hr/${selectedCandidate._id}/evaluate`, {
+      const res = await authFetch('/api/interviews/hr/submit', {
         method: 'POST',
-        body: JSON.stringify(payload)
+        body: JSON.stringify({
+          candidateId: selectedCandidate._id,
+          communicationScore,
+          behaviorScore,
+          confidenceScore,
+          verdict,
+          remarks
+        })
       });
 
       if (res.success) {
-        alert(res.message);
+        alert(`HR final evaluation submitted! Final Decision: ${verdict}`);
         setSelectedCandidate(null);
         fetchHrQueue();
       } else {
-        alert(res.message || 'HR Evaluation failed');
+        alert(res.message || 'HR submission failed');
       }
     } catch (err) {
       alert(err.message);
@@ -81,167 +116,264 @@ export const HREvaluationWorkstation = () => {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
+      {/* Title Header */}
       <div className="bg-white p-4 border border-erp-border rounded-xs shadow-xs flex items-center justify-between">
         <div>
           <h2 className="text-base font-bold text-erp-primary uppercase tracking-wide flex items-center gap-2">
             <UserCheck size={18} /> HR Evaluation & Final Selection Panel
           </h2>
           <p className="text-xs text-gray-600">
-            Rate communication, behavior, confidence, and issue final candidate verdict.
+            Assess soft skills, communication, behavior, edit candidate stage, and issue final hiring decision.
           </p>
         </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {/* HR Queue */}
+        {/* Candidate Queue Sidebar */}
         <div className="bg-white border border-erp-border rounded-xs shadow-xs p-4 space-y-3">
-          <h3 className="text-xs font-bold text-erp-primary uppercase tracking-wider border-b pb-2 flex items-center justify-between">
-            <span>HR Queue Candidates</span>
-            <span className="bg-erp-primary text-white px-2 py-0.5 rounded text-[10px]">{queueCandidates.length}</span>
-          </h3>
+          <div className="flex items-center justify-between border-b pb-2">
+            <h3 className="text-xs font-bold text-erp-primary uppercase tracking-wider flex items-center gap-1.5">
+              <Users size={15} /> HR Queue ({queueCandidates.length})
+            </h3>
+            <span className="text-[10px] text-gray-500 font-semibold">Assigned & Active</span>
+          </div>
 
-          <div className="space-y-2 max-h-[500px] overflow-y-auto">
+          <div className="space-y-2 max-h-[600px] overflow-y-auto pr-1">
             {queueCandidates.length === 0 ? (
-              <p className="text-xs text-gray-500 text-center py-4">No candidates in HR queue.</p>
+              <div className="p-4 text-center text-xs text-gray-500">
+                No candidates currently assigned in your HR evaluation queue.
+              </div>
             ) : (
-              queueCandidates.map(c => (
-                <div
-                  key={c._id}
-                  onClick={() => setSelectedCandidate(c)}
-                  className={`p-3 border rounded-xs cursor-pointer text-xs transition ${
-                    selectedCandidate?._id === c._id
-                      ? 'border-erp-primary bg-teal-50/80 font-semibold'
-                      : 'hover:bg-gray-50'
-                  }`}
-                >
-                  <div className="flex items-center justify-between">
-                    <span className="font-bold text-erp-primary">{c.fullName}</span>
-                    <span className="text-[10px] bg-gray-200 px-1.5 py-0.5 rounded">{c.tokenNumber}</span>
+              queueCandidates.map(c => {
+                const isSelected = selectedCandidate?._id === c._id;
+                return (
+                  <div
+                    key={c._id}
+                    className={`p-3 rounded border text-xs space-y-2 transition ${
+                      isSelected
+                        ? 'border-erp-primary bg-teal-50/60 shadow-xs'
+                        : 'border-gray-200 hover:bg-gray-50'
+                    }`}
+                  >
+                    <div className="flex items-start justify-between">
+                      <div>
+                        <div className="font-bold text-gray-900">{c.fullName}</div>
+                        <div className="text-[10px] text-erp-primary font-mono">{c.candidateCode}</div>
+                      </div>
+                      <StageBadge stage={c.stage} />
+                    </div>
+
+                    <div className="text-[11px] text-gray-600 space-y-0.5">
+                      <div>Profile: <strong>{c.appliedProfileId?.title || c.appliedProfileName}</strong></div>
+                      <div>Tech Score: <strong>{c.technicalEvaluation?.score || 0}%</strong></div>
+                      <div>Practical Score: <strong>{c.practicalEvaluation?.score || 0}%</strong></div>
+                      {c.assignedHrInterviewer && (
+                        <div className="text-[10px] text-teal-700 font-semibold">
+                          Assigned to: {c.assignedHrInterviewer.fullName || 'You'}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Action Buttons: Start HR Evaluation & Edit Stage */}
+                    <div className="flex items-center gap-2 pt-1 border-t border-gray-200">
+                      <button
+                        onClick={() => setSelectedCandidate(c)}
+                        className={`flex-1 py-1.5 text-xs font-bold rounded flex items-center justify-center gap-1 transition ${
+                          isSelected ? 'bg-teal-800 text-white' : 'bg-gray-100 hover:bg-teal-800 hover:text-white text-gray-800'
+                        }`}
+                      >
+                        <UserCheck size={13} /> {isSelected ? 'In Progress' : 'Start HR Panel'}
+                      </button>
+
+                      <button
+                        onClick={() => {
+                          setEditingCandidateStage(c._id);
+                          setNewStageValue(c.stage);
+                        }}
+                        className="px-2 py-1.5 text-[11px] border border-gray-300 hover:bg-gray-200 rounded text-gray-700 font-semibold flex items-center gap-1"
+                        title="Edit Stage"
+                      >
+                        <Edit3 size={12} /> Stage
+                      </button>
+                    </div>
+
+                    {/* Inline Quick Stage Editor */}
+                    {editingCandidateStage === c._id && (
+                      <div className="p-2 bg-yellow-50 border border-yellow-300 rounded space-y-2 text-xs">
+                        <label className="block text-[10px] font-bold text-yellow-900 uppercase">
+                          Edit Round / Stage for {c.fullName}:
+                        </label>
+                        <select
+                          value={newStageValue}
+                          onChange={e => setNewStageValue(e.target.value)}
+                          className="erp-select text-xs font-bold"
+                        >
+                          <option value="HR_QUEUE">HR_QUEUE (HR Round)</option>
+                          <option value="HR_IN_PROGRESS">HR_IN_PROGRESS</option>
+                          <option value="SELECTED">SELECTED (Hired)</option>
+                          <option value="HOLD">HOLD (On Hold)</option>
+                          <option value="REJECTED">REJECTED (Failed)</option>
+                        </select>
+
+                        <div className="flex justify-end gap-1 pt-1">
+                          <button
+                            onClick={() => setEditingCandidateStage(null)}
+                            className="px-2 py-0.5 bg-gray-200 text-gray-800 text-[10px] rounded"
+                          >
+                            Cancel
+                          </button>
+                          <button
+                            onClick={() => handleStageChange(c._id, newStageValue)}
+                            className="px-2 py-0.5 bg-erp-primary text-white text-[10px] rounded font-bold"
+                          >
+                            Save Stage
+                          </button>
+                        </div>
+                      </div>
+                    )}
                   </div>
-                  <div className="text-[11px] text-gray-600 mt-1">{c.appliedProfileId?.title}</div>
-                </div>
-              ))
+                );
+              })
             )}
           </div>
         </div>
 
-        {/* HR Evaluation Form */}
-        <div className="md:col-span-2 bg-white border border-erp-border rounded-xs shadow-xs p-5">
+        {/* HR Evaluation Workstation Form */}
+        <div className="md:col-span-2 bg-white border border-erp-border rounded-xs shadow-xs p-5 space-y-4">
           {!selectedCandidate ? (
-            <div className="text-center py-12 text-gray-500 text-xs">
-              <UserCheck size={36} className="mx-auto text-gray-300 mb-2" />
-              Select a candidate from the left queue to conduct their final HR evaluation.
+            <div className="p-12 text-center text-gray-500 space-y-2">
+              <UserCheck size={40} className="mx-auto text-gray-400" />
+              <h3 className="font-bold text-sm text-gray-700">No Candidate Selected</h3>
+              <p className="text-xs">Select a candidate from the queue to start behavioral and soft skills assessment.</p>
             </div>
           ) : (
-            <form onSubmit={handleSubmit} className="space-y-5">
-              <div className="bg-erp-bg p-3 rounded border border-erp-border flex items-center justify-between">
+            <form onSubmit={handleSubmit} className="space-y-4 text-xs">
+              {/* Selected Candidate Dossier Banner */}
+              <div className="p-3 bg-teal-50 border border-teal-200 rounded flex items-center justify-between">
                 <div>
-                  <h3 className="text-sm font-bold text-erp-primary">{selectedCandidate.fullName}</h3>
-                  <p className="text-xs text-gray-600">{selectedCandidate.appliedProfileId?.title} | Token: {selectedCandidate.tokenNumber}</p>
-                </div>
-                <StageBadge stage={selectedCandidate.stage} />
-              </div>
-
-              {/* Technical & Practical Summary Cards */}
-              <div className="grid grid-cols-2 gap-4 text-xs">
-                <div className="p-3 bg-blue-50 border border-blue-200 rounded">
-                  <span className="font-bold text-blue-900 block">Technical Score</span>
-                  <span className="text-lg font-bold text-blue-800">{selectedCandidate.technicalEvaluation?.score || 0}%</span>
-                </div>
-                <div className="p-3 bg-purple-50 border border-purple-200 rounded">
-                  <span className="font-bold text-purple-900 block">Practical Score</span>
-                  <span className="text-lg font-bold text-purple-800">{selectedCandidate.practicalEvaluation?.score || 0}%</span>
-                </div>
-              </div>
-
-              {/* Behavioral Sliders / Rating */}
-              <div className="space-y-4 border-t pt-4">
-                <h4 className="text-xs font-bold text-erp-primary uppercase">Behavioral Parameter Ratings (1 - 5 Scale)</h4>
-
-                <div>
-                  <div className="flex justify-between text-xs font-semibold mb-1">
-                    <span>Communication Skills:</span>
-                    <span className="text-erp-primary font-bold">{commScore} / 5</span>
-                  </div>
-                  <input
-                    type="range"
-                    min="1"
-                    max="5"
-                    value={commScore}
-                    onChange={e => setCommScore(Number(e.target.value))}
-                    className="w-full accent-erp-primary"
-                  />
+                  <h4 className="font-bold text-sm text-teal-900">{selectedCandidate.fullName}</h4>
+                  <p className="text-xs text-teal-700 font-mono">{selectedCandidate.candidateCode} | {selectedCandidate.appliedProfileId?.title || selectedCandidate.appliedProfileName}</p>
                 </div>
 
-                <div>
-                  <div className="flex justify-between text-xs font-semibold mb-1">
-                    <span>Behavior & Attitude:</span>
-                    <span className="text-erp-primary font-bold">{behScore} / 5</span>
-                  </div>
-                  <input
-                    type="range"
-                    min="1"
-                    max="5"
-                    value={behScore}
-                    onChange={e => setBehScore(Number(e.target.value))}
-                    className="w-full accent-erp-primary"
-                  />
-                </div>
-
-                <div>
-                  <div className="flex justify-between text-xs font-semibold mb-1">
-                    <span>Confidence Level:</span>
-                    <span className="text-erp-primary font-bold">{confScore} / 5</span>
-                  </div>
-                  <input
-                    type="range"
-                    min="1"
-                    max="5"
-                    value={confScore}
-                    onChange={e => setConfScore(Number(e.target.value))}
-                    className="w-full accent-erp-primary"
-                  />
+                <div className="flex items-center gap-2">
+                  <StageBadge stage={selectedCandidate.stage} />
+                  <select
+                    value={selectedCandidate.stage}
+                    onChange={e => handleStageChange(selectedCandidate._id, e.target.value)}
+                    className="erp-select text-xs font-bold text-teal-900"
+                  >
+                    <option value="HR_QUEUE">Stage: HR Queue</option>
+                    <option value="HR_IN_PROGRESS">Stage: HR In Progress</option>
+                    <option value="SELECTED">Final Decision: SELECTED</option>
+                    <option value="HOLD">Final Decision: HOLD</option>
+                    <option value="REJECTED">Final Decision: REJECTED</option>
+                  </select>
                 </div>
               </div>
 
-              {/* Final Decision */}
-              <div className="border-t pt-4 space-y-3">
-                <div className="grid grid-cols-2 gap-4">
+              {/* Previous Rounds Scores Summary */}
+              <div className="grid grid-cols-2 gap-3 bg-gray-50 p-3 rounded border">
+                <div>
+                  <span className="text-[10px] text-gray-500 uppercase font-bold block">Technical Round Verdict</span>
+                  <strong className="text-blue-900 text-sm">
+                    {selectedCandidate.technicalEvaluation?.verdict || 'PASS'} ({selectedCandidate.technicalEvaluation?.score || 0}%)
+                  </strong>
+                </div>
+                <div>
+                  <span className="text-[10px] text-gray-500 uppercase font-bold block">Practical Task Verdict</span>
+                  <strong className="text-purple-900 text-sm">
+                    {selectedCandidate.practicalEvaluation?.verdict || 'PASS'} ({selectedCandidate.practicalEvaluation?.score || 0}%)
+                  </strong>
+                </div>
+              </div>
+
+              {/* Behavioral Ratings (1 to 5) */}
+              <div className="space-y-3 p-4 border rounded bg-white">
+                <h4 className="font-bold text-teal-900 uppercase border-b pb-1">Behavioral & Soft Skills Rating Matrix (1-5 Scale)</h4>
+
+                <div className="grid grid-cols-3 gap-4">
                   <div>
-                    <label className="block text-xs font-semibold text-gray-700 mb-1">Final Hiring Verdict</label>
+                    <label className="block font-semibold text-gray-700 mb-1">Communication Skills (1-5)</label>
                     <select
-                      value={verdict}
-                      onChange={e => setVerdict(e.target.value)}
-                      className="erp-select font-bold text-emerald-800"
+                      value={communicationScore}
+                      onChange={e => setCommunicationScore(Number(e.target.value))}
+                      className="erp-select font-bold text-teal-900"
                     >
-                      <option value="SELECTED">SELECTED (Issue Offer Letter)</option>
-                      <option value="HOLD">HOLD (Waitlist Candidate)</option>
-                      <option value="REJECTED">REJECTED (Do Not Hire)</option>
+                      {[1,2,3,4,5].map(val => (
+                        <option key={val} value={val}>{val} Star{val > 1 ? 's' : ''}</option>
+                      ))}
                     </select>
                   </div>
 
                   <div>
-                    <label className="block text-xs font-semibold text-gray-700 mb-1">HR Remarks & Salary Fit</label>
-                    <input
-                      type="text"
-                      required
-                      value={remarks}
-                      onChange={e => setRemarks(e.target.value)}
-                      placeholder="Candidate notes & compensation comments..."
-                      className="erp-input"
-                    />
+                    <label className="block font-semibold text-gray-700 mb-1">Behavior & Attitude (1-5)</label>
+                    <select
+                      value={behaviorScore}
+                      onChange={e => setBehaviorScore(Number(e.target.value))}
+                      className="erp-select font-bold text-teal-900"
+                    >
+                      {[1,2,3,4,5].map(val => (
+                        <option key={val} value={val}>{val} Star{val > 1 ? 's' : ''}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block font-semibold text-gray-700 mb-1">Confidence & Culture Fit (1-5)</label>
+                    <select
+                      value={confidenceScore}
+                      onChange={e => setConfidenceScore(Number(e.target.value))}
+                      className="erp-select font-bold text-teal-900"
+                    >
+                      {[1,2,3,4,5].map(val => (
+                        <option key={val} value={val}>{val} Star{val > 1 ? 's' : ''}</option>
+                      ))}
+                    </select>
                   </div>
                 </div>
+              </div>
 
-                <div className="flex justify-end gap-2">
-                  <button type="button" onClick={() => setSelectedCandidate(null)} className="btn-erp-secondary">Cancel</button>
+              {/* HR Remarks & Final Decision */}
+              <div className="p-4 border rounded bg-gray-50 space-y-3">
+                <div>
+                  <label className="block font-bold text-gray-700 mb-1">HR Remarks & Offer Expectations</label>
+                  <textarea
+                    rows={3}
+                    value={remarks}
+                    onChange={e => setRemarks(e.target.value)}
+                    placeholder="Candidate notice period, salary expectations, joining date, HR feedback..."
+                    className="erp-input text-xs"
+                  />
+                </div>
+
+                <div className="flex items-center justify-between pt-2">
+                  <div className="flex items-center gap-3">
+                    <span className="font-bold text-gray-800">Final Decision:</span>
+                    {[
+                      { id: 'SELECTED', label: 'SELECTED (Hire)', color: 'text-green-700' },
+                      { id: 'HOLD', label: 'HOLD', color: 'text-yellow-700' },
+                      { id: 'REJECTED', label: 'REJECTED', color: 'text-red-700' }
+                    ].map(d => (
+                      <label key={d.id} className="flex items-center gap-1 font-bold text-xs cursor-pointer">
+                        <input
+                          type="radio"
+                          name="hr_decision"
+                          value={d.id}
+                          checked={verdict === d.id}
+                          onChange={() => setVerdict(d.id)}
+                        />
+                        <span className={d.color}>{d.label}</span>
+                      </label>
+                    ))}
+                  </div>
+
                   <button
                     type="submit"
                     disabled={loading}
-                    className="btn-erp-primary flex items-center gap-1.5"
+                    className="bg-teal-800 hover:bg-teal-900 text-white py-2 px-4 rounded text-xs flex items-center gap-1 font-bold"
                   >
-                    <Send size={14} /> Finalize HR Decision
+                    <Send size={14} /> Submit Final Decision
                   </button>
                 </div>
               </div>
