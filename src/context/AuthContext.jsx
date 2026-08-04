@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { getApiUrl } from '../config/api';
 
 const AuthContext = createContext();
 
@@ -13,7 +14,8 @@ export const AuthProvider = ({ children }) => {
   const login = async (username, password) => {
     setLoading(true);
     try {
-      const response = await fetch('/api/auth/login', {
+      const fullUrl = getApiUrl('/api/auth/login');
+      const response = await fetch(fullUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username, password })
@@ -55,13 +57,14 @@ export const AuthProvider = ({ children }) => {
   };
 
   const authFetch = async (url, options = {}) => {
+    const fullUrl = getApiUrl(url);
     const headers = {
       'Content-Type': 'application/json',
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
       ...options.headers
     };
 
-    const res = await fetch(url, { ...options, headers });
+    const res = await fetch(fullUrl, { ...options, headers });
     if (res.status === 401) {
       logout();
       throw new Error('Session expired. Please log in again.');
