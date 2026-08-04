@@ -163,7 +163,9 @@ export const CandidateManagement = () => {
         method: 'POST',
         body: JSON.stringify({
           candidateId: reassignCandidate._id,
+          roundType: reassignStage,
           stageType: reassignStage,
+          interviewerUserId: reassignInterviewerId,
           interviewerId: reassignInterviewerId
         })
       });
