@@ -1,0 +1,135 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    background-color: #F4F6F9;
+    color: #212529;
+    font-size: 0.875rem; /* 14px compact ERP standard */
+    line-height: 1.4;
+  }
+}
+
+/* Classic ERP Table Styling */
+.erp-table {
+  width: 100%;
+  border-collapse: collapse;
+  background-color: #ffffff;
+}
+
+.erp-table th {
+  background-color: #034665;
+  color: #ffffff;
+  font-weight: 600;
+  text-align: left;
+  padding: 8px 12px;
+  font-size: 0.8125rem;
+  border-bottom: 2px solid #023249;
+  white-space: nowrap;
+}
+
+.erp-table td {
+  padding: 8px 12px;
+  border-bottom: 1px solid #DEE2E6;
+  font-size: 0.84rem;
+}
+
+.erp-table tbody tr:nth-child(even) {
+  background-color: #F8F9FA;
+}
+
+.erp-table tbody tr:hover {
+  background-color: #EBF3F7;
+}
+
+/* Classic Enterprise Button */
+.btn-erp-primary {
+  background-color: #034665;
+  color: #ffffff;
+  padding: 6px 14px;
+  font-weight: 600;
+  border-radius: 3px;
+  font-size: 0.825rem;
+  transition: background-color 0.15s ease-in-out;
+}
+.btn-erp-primary:hover {
+  background-color: #023249;
+}
+
+.btn-erp-secondary {
+  background-color: #6C757D;
+  color: #ffffff;
+  padding: 6px 14px;
+  font-weight: 600;
+  border-radius: 3px;
+  font-size: 0.825rem;
+}
+.btn-erp-secondary:hover {
+  background-color: #5A6268;
+}
+
+.btn-erp-success {
+  background-color: #28A745;
+  color: #ffffff;
+  padding: 6px 14px;
+  font-weight: 600;
+  border-radius: 3px;
+  font-size: 0.825rem;
+}
+.btn-erp-success:hover {
+  background-color: #218838;
+}
+
+.btn-erp-danger {
+  background-color: #DC3545;
+  color: #ffffff;
+  padding: 6px 14px;
+  font-weight: 600;
+  border-radius: 3px;
+  font-size: 0.825rem;
+}
+.btn-erp-danger:hover {
+  background-color: #C82333;
+}
+
+/* Form Controls */
+.erp-input {
+  width: 100%;
+  border: 1px solid #CED4DA;
+  border-radius: 3px;
+  padding: 6px 10px;
+  font-size: 0.85rem;
+  background-color: #FFFFFF;
+}
+.erp-input:focus {
+  outline: none;
+  border-color: #034665;
+  box-shadow: 0 0 0 2px rgba(3, 70, 101, 0.2);
+}
+
+.erp-select {
+  width: 100%;
+  border: 1px solid #CED4DA;
+  border-radius: 3px;
+  padding: 6px 10px;
+  font-size: 0.85rem;
+  background-color: #FFFFFF;
+}
+.erp-select:focus {
+  outline: none;
+  border-color: #034665;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+::-webkit-scrollbar-thumb {
+  background: #034665;
+  border-radius: 3px;
+}
