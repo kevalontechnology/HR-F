@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { UserCheck, CheckCircle, XCircle, Send, Users, Star, Edit3 } from 'lucide-react';
+import { UserCheck, CheckCircle, Send, Users, Edit3 } from 'lucide-react';
 import { StageBadge } from '../components/common/Badge';
+import { Preloader } from '../components/common/Preloader';
 
 export const HREvaluationWorkstation = () => {
   const { user, authFetch } = useAuth();
@@ -14,6 +15,7 @@ export const HREvaluationWorkstation = () => {
   const [verdict, setVerdict] = useState('SELECTED');
   const [remarks, setRemarks] = useState('');
   const [loading, setLoading] = useState(false);
+  const [initialLoading, setInitialLoading] = useState(true);
 
   // Edit Stage State
   const [editingCandidateStage, setEditingCandidateStage] = useState(null);
@@ -28,10 +30,11 @@ export const HREvaluationWorkstation = () => {
         const isSuperAdmin = user?.role?.name === 'Super Admin';
 
         const allCandidates = res.data || [];
-        const allHr = allCandidates.filter(c => {
-          if (c.stage === 'SELECTED' || c.stage === 'REJECTED' || c.stage === 'HOLD') return false;
-          return c.stage.includes('HR') || c.stage === 'PRACTICAL_COMPLETED' || c.assignedHrInterviewer;
-        });
+        
+        // STRICT STAGE SEGREGATION: Show ONLY HR_QUEUE, HR_IN_PROGRESS, or PRACTICAL_COMPLETED
+        const allHr = allCandidates.filter(c => 
+          c.stage === 'HR_QUEUE' || c.stage === 'HR_IN_PROGRESS' || c.stage === 'PRACTICAL_COMPLETED'
+        );
 
         if (!isSuperAdmin && (userEmpId || userEmail)) {
           const myHr = allHr.filter(c => {
@@ -53,6 +56,8 @@ export const HREvaluationWorkstation = () => {
       }
     } catch (err) {
       console.error(err);
+    } finally {
+      setInitialLoading(false);
     }
   };
 
@@ -73,7 +78,11 @@ export const HREvaluationWorkstation = () => {
         setEditingCandidateStage(null);
         fetchHrQueue();
         if (selectedCandidate && selectedCandidate._id === candidateId) {
-          setSelectedCandidate({ ...selectedCandidate, stage: stageToSet });
+          if (!stageToSet.includes('HR') && stageToSet !== 'PRACTICAL_COMPLETED') {
+            setSelectedCandidate(null); // Exit HR view if moved out of HR!
+          } else {
+            setSelectedCandidate({ ...selectedCandidate, stage: stageToSet });
+          }
         }
       } else {
         alert(res.message || 'Failed to update candidate stage');
@@ -115,6 +124,10 @@ export const HREvaluationWorkstation = () => {
     }
   };
 
+  if (initialLoading) {
+    return <Preloader message="Loading HR Panel & Candidate Queues..." />;
+  }
+
   return (
     <div className="space-y-4">
       {/* Title Header */}
@@ -124,7 +137,7 @@ export const HREvaluationWorkstation = () => {
             <UserCheck size={18} /> HR Evaluation & Final Selection Panel
           </h2>
           <p className="text-xs text-gray-600">
-            Assess soft skills, communication, behavior, edit candidate stage, and issue final hiring decision.
+            Strict HR Queue Assessment. Candidates moving to Selected/Rejected exit this queue.
           </p>
         </div>
       </div>
@@ -175,7 +188,7 @@ export const HREvaluationWorkstation = () => {
                       )}
                     </div>
 
-                    {/* Action Buttons: Start HR Evaluation & Edit Stage */}
+                    {/* Action Buttons */}
                     <div className="flex items-center gap-2 pt-1 border-t border-gray-200">
                       <button
                         onClick={() => setSelectedCandidate(c)}
@@ -241,7 +254,9 @@ export const HREvaluationWorkstation = () => {
 
         {/* HR Evaluation Workstation Form */}
         <div className="md:col-span-2 bg-white border border-erp-border rounded-xs shadow-xs p-5 space-y-4">
-          {!selectedCandidate ? (
+          {loading ? (
+            <Preloader message="Submitting HR Evaluation Result..." />
+          ) : !selectedCandidate ? (
             <div className="p-12 text-center text-gray-500 space-y-2">
               <UserCheck size={40} className="mx-auto text-gray-400" />
               <h3 className="font-bold text-sm text-gray-700">No Candidate Selected</h3>

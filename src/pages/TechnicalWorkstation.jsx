@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { Code, CheckCircle, XCircle, AlertCircle, Send, Users, Edit3, ArrowRight } from 'lucide-react';
+import { Code, CheckCircle, Send, Users, Edit3 } from 'lucide-react';
 import { StageBadge } from '../components/common/Badge';
+import { Preloader } from '../components/common/Preloader';
 
 export const TechnicalWorkstation = () => {
   const { user, authFetch } = useAuth();
@@ -12,6 +13,7 @@ export const TechnicalWorkstation = () => {
   const [generalRemarks, setGeneralRemarks] = useState('');
   const [verdict, setVerdict] = useState('PASS');
   const [loading, setLoading] = useState(false);
+  const [initialLoading, setInitialLoading] = useState(true);
 
   // Edit Stage State
   const [editingCandidateStage, setEditingCandidateStage] = useState(null);
@@ -26,11 +28,11 @@ export const TechnicalWorkstation = () => {
         const isSuperAdmin = user?.role?.name === 'Super Admin';
 
         const allCandidates = res.data || [];
-        const allTech = allCandidates.filter(c => {
-          if (c.stage === 'SELECTED' || c.stage === 'REJECTED' || c.stage === 'HOLD') return false;
-          // Show candidates in technical queue/in progress OR assigned to this technical interviewer
-          return c.stage.includes('TECHNICAL') || c.assignedTechnicalInterviewer;
-        });
+        
+        // STRICT STAGE SEGREGATION: Show ONLY TECHNICAL_QUEUE & TECHNICAL_IN_PROGRESS
+        const allTech = allCandidates.filter(c => 
+          c.stage === 'TECHNICAL_QUEUE' || c.stage === 'TECHNICAL_IN_PROGRESS'
+        );
 
         if (!isSuperAdmin && (userEmpId || userEmail)) {
           const myTech = allTech.filter(c => {
@@ -52,6 +54,8 @@ export const TechnicalWorkstation = () => {
       }
     } catch (err) {
       console.error(err);
+    } finally {
+      setInitialLoading(false);
     }
   };
 
@@ -92,7 +96,11 @@ export const TechnicalWorkstation = () => {
         setEditingCandidateStage(null);
         fetchTechQueue();
         if (selectedCandidate && selectedCandidate._id === candidateId) {
-          setSelectedCandidate({ ...selectedCandidate, stage: stageToSet });
+          if (stageToSet !== 'TECHNICAL_QUEUE' && stageToSet !== 'TECHNICAL_IN_PROGRESS') {
+            setSelectedCandidate(null); // Remove candidate from workstation view if stage moved out of Technical!
+          } else {
+            setSelectedCandidate({ ...selectedCandidate, stage: stageToSet });
+          }
         }
       } else {
         alert(res.message || 'Failed to update candidate stage');
@@ -141,6 +149,10 @@ export const TechnicalWorkstation = () => {
     }
   };
 
+  if (initialLoading) {
+    return <Preloader message="Loading Technical Queue & Candidate Dossiers..." />;
+  }
+
   return (
     <div className="space-y-4">
       {/* Title Header */}
@@ -150,7 +162,7 @@ export const TechnicalWorkstation = () => {
             <Code size={18} /> Technical Interview Workstation
           </h2>
           <p className="text-xs text-gray-600">
-            Conduct 10-Question technical evaluations, grade answers, change candidate stage, and route candidate.
+            Strict Technical Queue Evaluation. Candidates moving to Practical or HR automatically exit this queue.
           </p>
         </div>
       </div>
@@ -200,7 +212,7 @@ export const TechnicalWorkstation = () => {
                       )}
                     </div>
 
-                    {/* Action Buttons: Start Evaluation & Edit Stage */}
+                    {/* Action Buttons */}
                     <div className="flex items-center gap-2 pt-1 border-t border-gray-200">
                       <button
                         onClick={() => loadCandidateQuestions(c)}
@@ -223,7 +235,7 @@ export const TechnicalWorkstation = () => {
                       </button>
                     </div>
 
-                    {/* Inline Quick Stage Editor */}
+                    {/* Inline Stage Editor */}
                     {editingCandidateStage === c._id && (
                       <div className="p-2 bg-yellow-50 border border-yellow-300 rounded space-y-2 text-xs">
                         <label className="block text-[10px] font-bold text-yellow-900 uppercase">
@@ -236,9 +248,8 @@ export const TechnicalWorkstation = () => {
                         >
                           <option value="TECHNICAL_QUEUE">TECHNICAL_QUEUE (Technical Round)</option>
                           <option value="TECHNICAL_IN_PROGRESS">TECHNICAL_IN_PROGRESS</option>
-                          <option value="TECHNICAL_COMPLETED">TECHNICAL_COMPLETED</option>
-                          <option value="PRACTICAL_QUEUE">PRACTICAL_QUEUE (Practical Round)</option>
-                          <option value="HR_QUEUE">HR_QUEUE (HR Round)</option>
+                          <option value="PRACTICAL_QUEUE">PRACTICAL_QUEUE (Push to Practical)</option>
+                          <option value="HR_QUEUE">HR_QUEUE (Push to HR)</option>
                           <option value="SELECTED">SELECTED (Hired)</option>
                           <option value="HOLD">HOLD (On Hold)</option>
                           <option value="REJECTED">REJECTED (Failed)</option>
@@ -267,9 +278,11 @@ export const TechnicalWorkstation = () => {
           </div>
         </div>
 
-        {/* Technical Evaluation Workstation Form */}
+        {/* Technical Workstation Evaluation Main Panel */}
         <div className="md:col-span-2 bg-white border border-erp-border rounded-xs shadow-xs p-5 space-y-4">
-          {!selectedCandidate ? (
+          {loading ? (
+            <Preloader message="Fetching Technical Test Questions..." />
+          ) : !selectedCandidate ? (
             <div className="p-12 text-center text-gray-500 space-y-2">
               <Code size={40} className="mx-auto text-gray-400" />
               <h3 className="font-bold text-sm text-gray-700">No Candidate Selected</h3>
@@ -293,7 +306,6 @@ export const TechnicalWorkstation = () => {
                   >
                     <option value="TECHNICAL_QUEUE">Stage: Technical Queue</option>
                     <option value="TECHNICAL_IN_PROGRESS">Stage: Technical In Progress</option>
-                    <option value="TECHNICAL_COMPLETED">Stage: Technical Completed</option>
                     <option value="PRACTICAL_QUEUE">Push to: Practical Queue</option>
                     <option value="HR_QUEUE">Push to: HR Queue</option>
                     <option value="SELECTED">Decision: Selected</option>
@@ -307,9 +319,7 @@ export const TechnicalWorkstation = () => {
               <div className="space-y-3">
                 <h4 className="font-bold text-erp-primary uppercase border-b pb-1">Technical Question Bank (10 Questions Drawer)</h4>
                 
-                {loading ? (
-                  <div className="p-6 text-center text-gray-500">Loading technical questions...</div>
-                ) : questions.length === 0 ? (
+                {questions.length === 0 ? (
                   <div className="p-4 text-center text-red-600 bg-red-50 rounded">
                     No questions found for this candidate profile. You can still set the verdict below.
                   </div>

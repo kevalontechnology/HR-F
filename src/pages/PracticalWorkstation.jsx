@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { Terminal, CheckCircle, XCircle, Send, Users, Edit3 } from 'lucide-react';
+import { Terminal, CheckCircle, Send, Users, Edit3 } from 'lucide-react';
 import { StageBadge } from '../components/common/Badge';
+import { Preloader } from '../components/common/Preloader';
 
 export const PracticalWorkstation = () => {
   const { user, authFetch } = useAuth();
@@ -13,6 +14,7 @@ export const PracticalWorkstation = () => {
   const [generalRemarks, setGeneralRemarks] = useState('');
   const [verdict, setVerdict] = useState('PASS');
   const [loading, setLoading] = useState(false);
+  const [initialLoading, setInitialLoading] = useState(true);
 
   // Edit Stage State
   const [editingCandidateStage, setEditingCandidateStage] = useState(null);
@@ -27,10 +29,11 @@ export const PracticalWorkstation = () => {
         const isSuperAdmin = user?.role?.name === 'Super Admin';
 
         const allCandidates = res.data || [];
-        const allPractical = allCandidates.filter(c => {
-          if (c.stage === 'SELECTED' || c.stage === 'REJECTED' || c.stage === 'HOLD') return false;
-          return c.stage.includes('PRACTICAL') || c.stage === 'TECHNICAL_COMPLETED' || c.assignedPracticalInterviewer;
-        });
+        
+        // STRICT STAGE SEGREGATION: Show ONLY PRACTICAL_QUEUE, PRACTICAL_IN_PROGRESS, or TECHNICAL_COMPLETED
+        const allPractical = allCandidates.filter(c => 
+          c.stage === 'PRACTICAL_QUEUE' || c.stage === 'PRACTICAL_IN_PROGRESS' || c.stage === 'TECHNICAL_COMPLETED'
+        );
 
         if (!isSuperAdmin && (userEmpId || userEmail)) {
           const myPractical = allPractical.filter(c => {
@@ -52,6 +55,8 @@ export const PracticalWorkstation = () => {
       }
     } catch (err) {
       console.error(err);
+    } font: {
+      setInitialLoading(false);
     }
   };
 
@@ -95,7 +100,11 @@ export const PracticalWorkstation = () => {
         setEditingCandidateStage(null);
         fetchPracticalQueue();
         if (selectedCandidate && selectedCandidate._id === candidateId) {
-          setSelectedCandidate({ ...selectedCandidate, stage: stageToSet });
+          if (!stageToSet.includes('PRACTICAL') && stageToSet !== 'TECHNICAL_COMPLETED') {
+            setSelectedCandidate(null); // Exit workstation view if moved out of Practical!
+          } else {
+            setSelectedCandidate({ ...selectedCandidate, stage: stageToSet });
+          }
         }
       } else {
         alert(res.message || 'Failed to update candidate stage');
@@ -144,6 +153,10 @@ export const PracticalWorkstation = () => {
     }
   };
 
+  if (initialLoading) {
+    return <Preloader message="Loading Practical Task Workstation..." />;
+  }
+
   return (
     <div className="space-y-4">
       {/* Title Header */}
@@ -153,7 +166,7 @@ export const PracticalWorkstation = () => {
             <Terminal size={18} /> Practical Task Workstation
           </h2>
           <p className="text-xs text-gray-600">
-            Evaluate coding tasks, review live code implementations, edit candidate stage, and route candidate.
+            Strict Practical Queue Evaluation. Candidates moving to HR or Selected automatically exit this queue.
           </p>
         </div>
       </div>
@@ -203,7 +216,7 @@ export const PracticalWorkstation = () => {
                       )}
                     </div>
 
-                    {/* Action Buttons: Start Task Test & Edit Stage */}
+                    {/* Action Buttons */}
                     <div className="flex items-center gap-2 pt-1 border-t border-gray-200">
                       <button
                         onClick={() => loadCandidateTasks(c)}
@@ -226,7 +239,7 @@ export const PracticalWorkstation = () => {
                       </button>
                     </div>
 
-                    {/* Inline Quick Stage Editor */}
+                    {/* Inline Stage Editor */}
                     {editingCandidateStage === c._id && (
                       <div className="p-2 bg-yellow-50 border border-yellow-300 rounded space-y-2 text-xs">
                         <label className="block text-[10px] font-bold text-yellow-900 uppercase">
@@ -239,8 +252,7 @@ export const PracticalWorkstation = () => {
                         >
                           <option value="PRACTICAL_QUEUE">PRACTICAL_QUEUE (Practical Round)</option>
                           <option value="PRACTICAL_IN_PROGRESS">PRACTICAL_IN_PROGRESS</option>
-                          <option value="PRACTICAL_COMPLETED">PRACTICAL_COMPLETED</option>
-                          <option value="HR_QUEUE">HR_QUEUE (HR Round)</option>
+                          <option value="HR_QUEUE">HR_QUEUE (Push to HR)</option>
                           <option value="SELECTED">SELECTED (Hired)</option>
                           <option value="HOLD">HOLD (On Hold)</option>
                           <option value="REJECTED">REJECTED (Failed)</option>
@@ -269,9 +281,11 @@ export const PracticalWorkstation = () => {
           </div>
         </div>
 
-        {/* Practical Evaluation Workstation Form */}
+        {/* Practical Workstation Form */}
         <div className="md:col-span-2 bg-white border border-erp-border rounded-xs shadow-xs p-5 space-y-4">
-          {!selectedCandidate ? (
+          {loading ? (
+            <Preloader message="Fetching Candidate Practical Tasks..." />
+          ) : !selectedCandidate ? (
             <div className="p-12 text-center text-gray-500 space-y-2">
               <Terminal size={40} className="mx-auto text-gray-400" />
               <h3 className="font-bold text-sm text-gray-700">No Candidate Selected</h3>
@@ -295,7 +309,6 @@ export const PracticalWorkstation = () => {
                   >
                     <option value="PRACTICAL_QUEUE">Stage: Practical Queue</option>
                     <option value="PRACTICAL_IN_PROGRESS">Stage: Practical In Progress</option>
-                    <option value="PRACTICAL_COMPLETED">Stage: Practical Completed</option>
                     <option value="HR_QUEUE">Push to: HR Queue</option>
                     <option value="SELECTED">Decision: Selected</option>
                     <option value="HOLD">Decision: Hold</option>
@@ -308,9 +321,7 @@ export const PracticalWorkstation = () => {
               <div className="space-y-3">
                 <h4 className="font-bold text-purple-900 uppercase border-b pb-1">Practical Task Bank (Assigned Tasks)</h4>
                 
-                {loading ? (
-                  <div className="p-6 text-center text-gray-500">Loading practical tasks...</div>
-                ) : tasks.length === 0 ? (
+                {tasks.length === 0 ? (
                   <div className="p-4 text-center text-red-600 bg-red-50 rounded">
                     No practical tasks found for this profile. You can still grade candidate performance below.
                   </div>
