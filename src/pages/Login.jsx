@@ -263,6 +263,20 @@ export const Login = () => {
                       <strong className="text-white text-xs truncate block">{candidateResult.branch}</strong>
                     </div>
                   </div>
+
+                  {/* Assigned Interviewer Banner */}
+                  <div className="bg-emerald-950/70 border border-emerald-500/40 p-2.5 rounded-lg flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <UserCheck size={16} className="text-emerald-400" />
+                      <div>
+                        <span className="text-[10px] text-emerald-300 font-extrabold uppercase tracking-wider block">Assigned Interview Panel / Evaluator:</span>
+                        <strong className="text-yellow-300 text-xs font-black">{candidateResult.assignedInterviewerName || 'Pending Auto-Assignment'}</strong>
+                      </div>
+                    </div>
+                    <span className="text-[10px] bg-emerald-400/20 text-emerald-300 font-bold px-2 py-0.5 rounded-full border border-emerald-400/30">
+                      Live Queue
+                    </span>
+                  </div>
                 </div>
 
                 {/* PRACTICAL TASKS SECTION (WITH STRICT ANTI-COPY PROTECTION) */}
