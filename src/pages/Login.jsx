@@ -2,25 +2,35 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { 
   Lock, User, KeyRound, Search, Ticket, FileCode, ShieldCheck, 
-  CheckCircle2, Building2, Clock, Sparkles, ArrowRight, ShieldAlert, BadgeCheck, UserCheck 
+  CheckCircle2, Building2, Clock, Sparkles, ArrowRight, ShieldAlert, BadgeCheck, UserCheck, Mail, Phone 
 } from 'lucide-react';
 import logoImg from '../Kevalon_Technology_Logo_Transparent.png';
 import { StageBadge } from '../components/common/Badge';
-
+import { CandidatePortal } from './CandidatePortal';
 import { getApiUrl } from '../config/api';
 
 export const Login = () => {
   const { login, loading } = useAuth();
   
-  // Tab State: 'candidate' or 'employee'
-  const [activeTab, setActiveTab] = useState('candidate');
+  // Tab State: 'candidate_login' | 'candidate_track' | 'employee'
+  const [activeTab, setActiveTab] = useState('candidate_login');
+
+  // Candidate Authentication State (Requires BOTH Email AND Mobile Number)
+  const [candidateEmail, setCandidateEmail] = useState('');
+  const [candidateMobile, setCandidateMobile] = useState('');
+  const [candidateAuthLoading, setCandidateAuthLoading] = useState(false);
+  const [candidateAuthError, setCandidateAuthError] = useState('');
+  const [loggedInCandidate, setLoggedInCandidate] = useState(() => {
+    const saved = localStorage.getItem('kevalon_candidate');
+    return saved ? JSON.parse(saved) : null;
+  });
 
   // Employee Login State
   const [username, setUsername] = useState('admin');
   const [password, setPassword] = useState('Admin@123');
   const [error, setError] = useState('');
 
-  // Public Candidate Tracker State (No Login Required)
+  // Quick Tracker Search State
   const [searchQuery, setSearchQuery] = useState('');
   const [searching, setSearching] = useState(false);
   const [candidateResult, setCandidateResult] = useState(null);
@@ -35,11 +45,9 @@ export const Login = () => {
     };
 
     const disableCopy = (e) => {
-      if (activeTab === 'candidate' && candidateResult) {
-        e.preventDefault();
-        alert("Copying text and inspecting practical tasks is strictly disabled.");
-        return false;
-      }
+      e.preventDefault();
+      alert("Copying text and inspecting practical tasks is strictly disabled.");
+      return false;
     };
 
     document.addEventListener('contextmenu', disableRightClick);
@@ -51,7 +59,45 @@ export const Login = () => {
       document.removeEventListener('copy', disableCopy);
       document.removeEventListener('cut', disableCopy);
     };
-  }, [activeTab, candidateResult]);
+  }, []);
+
+  const handleCandidateLogin = async (e) => {
+    e.preventDefault();
+    if (!candidateEmail.trim() || !candidateMobile.trim()) {
+      setCandidateAuthError('Both Email Address AND Mobile Number are strictly required.');
+      return;
+    }
+
+    setCandidateAuthLoading(true);
+    setCandidateAuthError('');
+
+    try {
+      const fullUrl = getApiUrl('/api/auth/candidate-login');
+      const response = await fetch(fullUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: candidateEmail, mobile: candidateMobile })
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        setLoggedInCandidate(data.candidate);
+        localStorage.setItem('kevalon_candidate', JSON.stringify(data.candidate));
+      } else {
+        setCandidateAuthError(data.message || 'Invalid credentials. Mobile and Email must match registered record.');
+      }
+    } catch (err) {
+      setCandidateAuthError('Network error. Please try logging in again.');
+    } finally {
+      setCandidateAuthLoading(false);
+    }
+  };
+
+  const handleCandidateLogout = () => {
+    setLoggedInCandidate(null);
+    localStorage.removeItem('kevalon_candidate');
+  };
 
   const handleLoginSubmit = async (e) => {
     e.preventDefault();
@@ -94,6 +140,11 @@ export const Login = () => {
     setPassword(passVal);
   };
 
+  // IF CANDIDATE IS LOGGED IN, RENDER THE FULL CANDIDATE PORTAL
+  if (loggedInCandidate) {
+    return <CandidatePortal candidate={loggedInCandidate} onLogout={handleCandidateLogout} />;
+  }
+
   return (
     <div 
       className="min-h-screen bg-slate-900 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-slate-800 via-slate-900 to-black flex flex-col justify-between items-center p-4 sm:p-6 select-none"
@@ -115,16 +166,16 @@ export const Login = () => {
             System Status: Active
           </span>
           <button
-            onClick={() => setActiveTab(activeTab === 'candidate' ? 'employee' : 'candidate')}
+            onClick={() => setActiveTab(activeTab === 'employee' ? 'candidate_login' : 'employee')}
             className="text-xs font-bold bg-white/10 hover:bg-white/20 text-white px-3 py-1.5 rounded-lg border border-white/20 transition flex items-center gap-1.5"
           >
-            {activeTab === 'candidate' ? (
+            {activeTab === 'employee' ? (
               <>
-                <Lock size={13} className="text-blue-400" /> Employee Login
+                <Ticket size={13} className="text-emerald-400" /> Candidate Portal
               </>
             ) : (
               <>
-                <Ticket size={13} className="text-emerald-400" /> Candidate Status
+                <Lock size={13} className="text-blue-400" /> Employee Login
               </>
             )}
           </button>
@@ -149,44 +200,116 @@ export const Login = () => {
               Kevalon Technology
             </h2>
             <p className="text-xs text-blue-100 uppercase tracking-widest font-semibold mt-1 flex items-center gap-1">
-              <Sparkles size={13} className="text-yellow-400" /> Recruitment CRM & Evaluation Portal
+              <Sparkles size={13} className="text-yellow-400" /> Recruitment CRM & Candidate Portal
             </p>
           </div>
         </div>
 
         {/* Tab Selector Segmented Bar */}
-        <div className="p-2 bg-slate-100 border-b border-gray-200 grid grid-cols-2 gap-2 text-xs font-bold">
+        <div className="p-2 bg-slate-100 border-b border-gray-200 grid grid-cols-3 gap-1.5 text-xs font-bold">
           <button
-            onClick={() => setActiveTab('candidate')}
-            className={`py-2.5 px-4 rounded-xl flex items-center justify-center gap-2 transition-all duration-200 ${
-              activeTab === 'candidate'
+            onClick={() => setActiveTab('candidate_login')}
+            className={`py-2.5 px-2 rounded-xl flex items-center justify-center gap-1.5 transition-all duration-200 ${
+              activeTab === 'candidate_login'
                 ? 'bg-[#034665] text-white shadow-md font-extrabold'
                 : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/70'
             }`}
           >
-            <Ticket size={16} className={activeTab === 'candidate' ? 'text-yellow-400' : ''} />
-            <span>Candidate Live Status & Task</span>
+            <User size={15} className={activeTab === 'candidate_login' ? 'text-yellow-400' : ''} />
+            <span>Candidate Sign In</span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab('candidate_track')}
+            className={`py-2.5 px-2 rounded-xl flex items-center justify-center gap-1.5 transition-all duration-200 ${
+              activeTab === 'candidate_track'
+                ? 'bg-[#034665] text-white shadow-md font-extrabold'
+                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/70'
+            }`}
+          >
+            <Ticket size={15} className={activeTab === 'candidate_track' ? 'text-emerald-400' : ''} />
+            <span>Quick Status Track</span>
           </button>
 
           <button
             onClick={() => setActiveTab('employee')}
-            className={`py-2.5 px-4 rounded-xl flex items-center justify-center gap-2 transition-all duration-200 ${
+            className={`py-2.5 px-2 rounded-xl flex items-center justify-center gap-1.5 transition-all duration-200 ${
               activeTab === 'employee'
                 ? 'bg-[#034665] text-white shadow-md font-extrabold'
                 : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/70'
             }`}
           >
-            <Lock size={16} className={activeTab === 'employee' ? 'text-blue-400' : ''} />
-            <span>Employee Access Portal</span>
+            <Lock size={15} className={activeTab === 'employee' ? 'text-blue-400' : ''} />
+            <span>Employee Login</span>
           </button>
         </div>
 
-        {/* TAB 1: PUBLIC CANDIDATE STATUS & PROTECTED PRACTICAL TASK VIEWER */}
-        {activeTab === 'candidate' && (
-          <div className="p-6 sm:p-8 space-y-6">
+        {/* TAB 1: CANDIDATE SIGN IN (BOTH MOBILE AND EMAIL REQUIRED) */}
+        {activeTab === 'candidate_login' && (
+          <div className="p-6 sm:p-8 space-y-5">
             <div className="text-center space-y-1">
               <span className="px-3 py-1 bg-blue-50 text-blue-900 text-[11px] font-extrabold uppercase tracking-wider rounded-full inline-flex items-center gap-1 border border-blue-200 mb-1">
-                <Ticket size={12} className="text-[#034665]" /> Real-Time Candidate Tracker
+                <User size={12} className="text-[#034665]" /> Candidate Self-Service Login
+              </span>
+              <h3 className="text-lg font-black text-slate-900">Sign In to Your Candidate Profile</h3>
+              <p className="text-xs text-slate-500 max-w-md mx-auto">
+                Both registered Mobile Number AND Email Address are strictly required to access your profile.
+              </p>
+            </div>
+
+            <form onSubmit={handleCandidateLogin} className="space-y-4">
+              {candidateAuthError && (
+                <div className="p-3.5 bg-rose-50 border border-rose-200 text-rose-800 text-xs font-bold rounded-xl text-center shadow-xs">
+                  {candidateAuthError}
+                </div>
+              )}
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 uppercase mb-1 flex items-center gap-1">
+                  <Phone size={14} className="text-[#034665]" /> Registered Contact / Mobile Number *
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={candidateMobile}
+                  onChange={(e) => setCandidateMobile(e.target.value)}
+                  placeholder="e.g. 8200925369"
+                  className="w-full px-3.5 py-2.5 bg-slate-50 border-2 border-slate-200 focus:border-[#034665] focus:bg-white rounded-xl text-xs font-bold text-slate-900 outline-none transition-all"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 uppercase mb-1 flex items-center gap-1">
+                  <Mail size={14} className="text-[#034665]" /> Registered Email Address *
+                </label>
+                <input
+                  type="email"
+                  required
+                  value={candidateEmail}
+                  onChange={(e) => setCandidateEmail(e.target.value)}
+                  placeholder="e.g. vanshpatel1496@gmail.com"
+                  className="w-full px-3.5 py-2.5 bg-slate-50 border-2 border-slate-200 focus:border-[#034665] focus:bg-white rounded-xl text-xs font-bold text-slate-900 outline-none transition-all"
+                />
+              </div>
+
+              <button
+                type="submit"
+                disabled={candidateAuthLoading}
+                className="w-full py-3 bg-[#034665] hover:bg-[#023249] text-white text-xs font-black uppercase tracking-wider rounded-xl transition-all shadow-md flex items-center justify-center gap-2"
+              >
+                <UserCheck size={16} />
+                {candidateAuthLoading ? 'Authenticating Candidate...' : 'Sign In to Candidate Profile'}
+              </button>
+            </form>
+          </div>
+        )}
+
+        {/* TAB 2: QUICK TRACKER SEARCH (NO LOGIN REQUIRED) */}
+        {activeTab === 'candidate_track' && (
+          <div className="p-6 sm:p-8 space-y-6">
+            <div className="text-center space-y-1">
+              <span className="px-3 py-1 bg-emerald-50 text-emerald-900 text-[11px] font-extrabold uppercase tracking-wider rounded-full inline-flex items-center gap-1 border border-emerald-200 mb-1">
+                <Ticket size={12} className="text-emerald-700" /> Real-Time Quick Tracker
               </span>
               <h3 className="text-lg font-black text-slate-900">Check Your Interview Round & Practical Task</h3>
               <p className="text-xs text-slate-500 max-w-md mx-auto">
@@ -332,7 +455,7 @@ export const Login = () => {
           </div>
         )}
 
-        {/* TAB 2: EMPLOYEE PORTAL LOGIN */}
+        {/* TAB 3: EMPLOYEE PORTAL LOGIN */}
         {activeTab === 'employee' && (
           <div className="p-6 sm:p-8 space-y-5">
             <div className="text-center space-y-1">
@@ -388,7 +511,33 @@ export const Login = () => {
               </button>
             </form>
 
+            {/* Quick Preset Selector */}
+            <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl text-center space-y-2">
+              <p className="text-[11px] font-black text-slate-600 uppercase tracking-wider">
+                Quick Sign-In Credentials Presets:
+              </p>
+              <div className="flex flex-wrap justify-center gap-2 text-[11px]">
+                <button
+                  onClick={() => setFastCredentials('admin', 'Admin@123')}
+                  className="px-3 py-1 bg-[#034665] text-white rounded-lg font-bold hover:opacity-90 transition shadow-2xs"
+                >
+                  Super Admin
+                </button>
+                <button
+                  onClick={() => setFastCredentials('vikram.tech', 'Tech@123')}
+                  className="px-3 py-1 bg-blue-700 text-white rounded-lg font-bold hover:opacity-90 transition shadow-2xs"
+                >
+                  Technical Interviewer
+                </button>
+                <button
+                  onClick={() => setFastCredentials('pooja.reception', 'Pooja@123')}
+                  className="px-3 py-1 bg-emerald-700 text-white rounded-lg font-bold hover:opacity-90 transition shadow-2xs"
+                >
+                  Receptionist
+                </button>
+              </div>
             </div>
+          </div>
         )}
 
         {/* Footer Security Badge Banner */}
