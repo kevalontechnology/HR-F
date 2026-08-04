@@ -113,7 +113,7 @@ export const PracticalWorkstation = () => {
     try {
       const taskResponses = Object.keys(marks).map(tId => ({
         taskId: tId,
-        taskTitle: tasks.find(t => t._id === tId)?.title || '',
+        taskTitle: tasks.find(t => t._id === tId)?.taskTitle || tasks.find(t => t._id === tId)?.title || '',
         maxMarks: tasks.find(t => t._id === tId)?.maxMarks || 50,
         marksObtained: Number(marks[tId]) || 0,
         remarks: taskRemarks[tId] || ''
@@ -318,14 +318,14 @@ export const PracticalWorkstation = () => {
                   tasks.map((t, idx) => (
                     <div key={t._id} className="p-3 border border-purple-200 rounded space-y-2 bg-purple-50/20">
                       <div className="flex items-start justify-between gap-2">
-                        <span className="font-bold text-purple-950 text-sm">Task #{idx + 1}: {t.title}</span>
+                        <span className="font-bold text-purple-950 text-sm">Task #{idx + 1}: {t.taskTitle || t.title}</span>
                         <span className="px-2 py-0.5 bg-purple-200 text-purple-900 text-[10px] font-bold rounded">
                           Max Marks: {t.maxMarks || 50}
                         </span>
                       </div>
 
                       <p className="text-xs text-gray-700 bg-white p-2 border rounded font-mono">
-                        {t.problemStatement}
+                        {t.taskDescription || t.problemStatement}
                       </p>
 
                       <div className="grid grid-cols-3 gap-3 pt-1">
