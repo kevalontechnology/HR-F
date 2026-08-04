@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { DataTable } from '../components/common/DataTable';
 import { Modal } from '../components/common/Modal';
-import { HelpCircle, Plus, Trash2, Edit } from 'lucide-react';
+import { HelpCircle, Plus, Trash2, Edit, CheckSquare, Layers, Wrench, AlertTriangle, RefreshCw } from 'lucide-react';
 import { Badge } from '../components/common/Badge';
 
 export const TechnicalQuestionBank = () => {
@@ -12,6 +12,12 @@ export const TechnicalQuestionBank = () => {
   const [skills, setSkills] = useState([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingId, setEditingId] = useState(null);
+
+  // Bulk Selection State
+  const [selectedIds, setSelectedIds] = useState([]);
+  const [bulkProfileId, setBulkProfileId] = useState('');
+  const [bulkSkillId, setBulkSkillId] = useState('');
+  const [bulkDifficulty, setBulkDifficulty] = useState('');
 
   const [formData, setFormData] = useState({
     questionText: '',
@@ -39,6 +45,69 @@ export const TechnicalQuestionBank = () => {
   useEffect(() => {
     fetchData();
   }, []);
+
+  const toggleSelectAll = (e) => {
+    if (e.target.checked) {
+      setSelectedIds(questions.map(q => q._id));
+    } else {
+      setSelectedIds([]);
+    }
+  };
+
+  const toggleSelectRow = (id) => {
+    if (selectedIds.includes(id)) {
+      setSelectedIds(selectedIds.filter(item => item !== id));
+    } else {
+      setSelectedIds([...selectedIds, id]);
+    }
+  };
+
+  const handleBulkUpdate = async (updateData, fieldLabel) => {
+    if (selectedIds.length === 0) return;
+    if (!confirm(`Apply bulk update for ${selectedIds.length} selected questions (${fieldLabel})?`)) return;
+
+    try {
+      const res = await authFetch('/api/questions/bulk-update', {
+        method: 'POST',
+        body: JSON.stringify({ ids: selectedIds, updateData })
+      });
+
+      if (res.success) {
+        alert(res.message);
+        setSelectedIds([]);
+        setBulkProfileId('');
+        setBulkSkillId('');
+        setBulkDifficulty('');
+        fetchData();
+      } else {
+        alert(res.message || 'Bulk update failed');
+      }
+    } catch (err) {
+      alert(err.message);
+    }
+  };
+
+  const handleBulkDelete = async () => {
+    if (selectedIds.length === 0) return;
+    if (!confirm(`Delete ${selectedIds.length} selected technical questions permanently?`)) return;
+
+    try {
+      const res = await authFetch('/api/questions/bulk-delete', {
+        method: 'POST',
+        body: JSON.stringify({ ids: selectedIds })
+      });
+
+      if (res.success) {
+        alert(res.message);
+        setSelectedIds([]);
+        fetchData();
+      } else {
+        alert(res.message || 'Bulk delete failed');
+      }
+    } catch (err) {
+      alert(err.message);
+    }
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -97,6 +166,26 @@ export const TechnicalQuestionBank = () => {
   };
 
   const columns = [
+    {
+      header: (
+        <input
+          type="checkbox"
+          checked={questions.length > 0 && selectedIds.length === questions.length}
+          onChange={toggleSelectAll}
+          className="rounded text-erp-primary"
+        />
+      ),
+      accessor: '_id',
+      width: '40px',
+      render: q => (
+        <input
+          type="checkbox"
+          checked={selectedIds.includes(q._id)}
+          onChange={() => toggleSelectRow(q._id)}
+          className="rounded text-erp-primary"
+        />
+      )
+    },
     { header: 'Question Text', accessor: 'questionText', render: q => <span className="font-semibold text-gray-900">{q.questionText}</span> },
     { header: 'Applied Profile', accessor: 'profileId', render: q => q.profileId?.title || 'N/A' },
     { header: 'Target Skill', accessor: 'skillId', render: q => <Badge variant="info">{q.skillId?.name || 'N/A'}</Badge> },
@@ -119,20 +208,90 @@ export const TechnicalQuestionBank = () => {
 
   return (
     <div className="space-y-4">
+      {/* Title Bar */}
       <div className="bg-white p-4 border border-erp-border rounded-xs shadow-xs flex items-center justify-between">
         <div>
           <h2 className="text-base font-bold text-erp-primary uppercase tracking-wide flex items-center gap-2">
-            <HelpCircle size={18} /> Technical Question Bank Master
+            <HelpCircle size={18} /> Technical Question Bank & Bulk Controller
           </h2>
-          <p className="text-xs text-gray-600">Question repository for automated Random 10 Technical Question drawer generation.</p>
+          <p className="text-xs text-gray-600">Select multiple questions to bulk update profiles, skills, difficulty, or delete.</p>
         </div>
         <button onClick={() => { setEditingId(null); resetForm(); setIsModalOpen(true); }} className="btn-erp-primary flex items-center gap-1">
           <Plus size={14} /> Add Technical Question
         </button>
       </div>
 
+      {/* Bulk Actions Toolbar Banner */}
+      {selectedIds.length > 0 && (
+        <div className="p-3 bg-yellow-50 border border-yellow-300 rounded-xs flex flex-wrap items-center justify-between gap-3 text-xs animate-fadeIn">
+          <div className="flex items-center gap-2 font-bold text-yellow-900">
+            <CheckSquare size={16} />
+            <span>{selectedIds.length} Questions Selected for Bulk Edit</span>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2">
+            {/* Bulk Profile Update */}
+            <div className="flex items-center gap-1">
+              <select
+                value={bulkProfileId}
+                onChange={e => {
+                  setBulkProfileId(e.target.value);
+                  if (e.target.value) handleBulkUpdate({ profileId: e.target.value }, 'Applied Profile');
+                }}
+                className="erp-select text-xs font-semibold bg-white"
+              >
+                <option value="">-- Bulk Change Profile --</option>
+                {profiles.map(p => <option key={p._id} value={p._id}>{p.title}</option>)}
+              </select>
+            </div>
+
+            {/* Bulk Skill Update */}
+            <div className="flex items-center gap-1">
+              <select
+                value={bulkSkillId}
+                onChange={e => {
+                  setBulkSkillId(e.target.value);
+                  if (e.target.value) handleBulkUpdate({ skillId: e.target.value }, 'Target Skill');
+                }}
+                className="erp-select text-xs font-semibold bg-white"
+              >
+                <option value="">-- Bulk Change Skill --</option>
+                {skills.map(s => <option key={s._id} value={s._id}>{s.name}</option>)}
+              </select>
+            </div>
+
+            {/* Bulk Difficulty Update */}
+            <div className="flex items-center gap-1">
+              <select
+                value={bulkDifficulty}
+                onChange={e => {
+                  setBulkDifficulty(e.target.value);
+                  if (e.target.value) handleBulkUpdate({ difficulty: e.target.value }, 'Difficulty Level');
+                }}
+                className="erp-select text-xs font-semibold bg-white"
+              >
+                <option value="">-- Bulk Difficulty --</option>
+                <option value="Easy">Easy</option>
+                <option value="Medium">Medium</option>
+                <option value="Hard">Hard</option>
+              </select>
+            </div>
+
+            {/* Bulk Delete */}
+            <button
+              onClick={handleBulkDelete}
+              className="bg-red-700 hover:bg-red-800 text-white px-3 py-1.5 rounded-xs font-bold flex items-center gap-1 text-xs"
+            >
+              <Trash2 size={13} /> Bulk Delete ({selectedIds.length})
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Questions Data Table */}
       <DataTable columns={columns} data={questions} searchPlaceholder="Search questions..." />
 
+      {/* Add / Edit Question Modal */}
       <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title={editingId ? "Edit Technical Question" : "Create Technical Question"}>
         <form onSubmit={handleSubmit} className="space-y-4 text-xs">
           <div>
