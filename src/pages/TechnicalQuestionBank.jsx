@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { DataTable } from '../components/common/DataTable';
 import { Modal } from '../components/common/Modal';
-import { HelpCircle, Plus, Trash2 } from 'lucide-react';
+import { HelpCircle, Plus, Trash2, Edit } from 'lucide-react';
 import { Badge } from '../components/common/Badge';
 
 export const TechnicalQuestionBank = () => {
@@ -11,6 +11,7 @@ export const TechnicalQuestionBank = () => {
   const [profiles, setProfiles] = useState([]);
   const [skills, setSkills] = useState([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingId, setEditingId] = useState(null);
 
   const [formData, setFormData] = useState({
     questionText: '',
@@ -42,20 +43,47 @@ export const TechnicalQuestionBank = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const res = await authFetch('/api/questions', {
-        method: 'POST',
+      const method = editingId ? 'PUT' : 'POST';
+      const url = editingId ? `/api/questions/${editingId}` : '/api/questions';
+
+      const res = await authFetch(url, {
+        method,
         body: JSON.stringify(formData)
       });
+
       if (res.success) {
         setIsModalOpen(false);
-        setFormData({ questionText: '', profileId: '', skillId: '', difficulty: 'Medium', expectedAnswer: '' });
+        setEditingId(null);
+        resetForm();
         fetchData();
       } else {
-        alert(res.message || 'Failed');
+        alert(res.message || 'Operation failed');
       }
     } catch (err) {
       alert(err.message);
     }
+  };
+
+  const resetForm = () => {
+    setFormData({
+      questionText: '',
+      profileId: profiles[0]?._id || '',
+      skillId: skills[0]?._id || '',
+      difficulty: 'Medium',
+      expectedAnswer: ''
+    });
+  };
+
+  const handleEdit = (q) => {
+    setEditingId(q._id);
+    setFormData({
+      questionText: q.questionText,
+      profileId: q.profileId?._id || q.profileId,
+      skillId: q.skillId?._id || q.skillId,
+      difficulty: q.difficulty || 'Medium',
+      expectedAnswer: q.expectedAnswer || ''
+    });
+    setIsModalOpen(true);
   };
 
   const handleDelete = async (id) => {
@@ -78,9 +106,14 @@ export const TechnicalQuestionBank = () => {
       </Badge>
     )},
     { header: 'Actions', accessor: '_id', render: q => (
-      <button onClick={() => handleDelete(q._id)} className="p-1 border text-red-600 hover:bg-red-50 rounded">
-        <Trash2 size={13} />
-      </button>
+      <div className="flex items-center gap-1">
+        <button onClick={() => handleEdit(q)} className="p-1 border text-erp-primary hover:bg-gray-100 rounded" title="Edit Question">
+          <Edit size={13} />
+        </button>
+        <button onClick={() => handleDelete(q._id)} className="p-1 border text-red-600 hover:bg-red-50 rounded" title="Delete Question">
+          <Trash2 size={13} />
+        </button>
+      </div>
     )}
   ];
 
@@ -93,30 +126,30 @@ export const TechnicalQuestionBank = () => {
           </h2>
           <p className="text-xs text-gray-600">Question repository for automated Random 10 Technical Question drawer generation.</p>
         </div>
-        <button onClick={() => setIsModalOpen(true)} className="btn-erp-primary flex items-center gap-1">
+        <button onClick={() => { setEditingId(null); resetForm(); setIsModalOpen(true); }} className="btn-erp-primary flex items-center gap-1">
           <Plus size={14} /> Add Technical Question
         </button>
       </div>
 
       <DataTable columns={columns} data={questions} searchPlaceholder="Search questions..." />
 
-      <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title="Create Technical Question">
+      <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title={editingId ? "Edit Technical Question" : "Create Technical Question"}>
         <form onSubmit={handleSubmit} className="space-y-4 text-xs">
           <div>
-            <label className="block font-semibold text-gray-700 mb-1">Question Text</label>
+            <label className="block font-semibold text-gray-700 mb-1">Question Text *</label>
             <textarea required rows={3} value={formData.questionText} onChange={e => setFormData({ ...formData, questionText: e.target.value })} className="erp-input" />
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block font-semibold text-gray-700 mb-1">Applied Profile</label>
+              <label className="block font-semibold text-gray-700 mb-1">Applied Profile *</label>
               <select required value={formData.profileId} onChange={e => setFormData({ ...formData, profileId: e.target.value })} className="erp-select">
                 <option value="">-- Select Profile --</option>
                 {profiles.map(p => <option key={p._id} value={p._id}>{p.title}</option>)}
               </select>
             </div>
             <div>
-              <label className="block font-semibold text-gray-700 mb-1">Target Skill</label>
+              <label className="block font-semibold text-gray-700 mb-1">Target Skill *</label>
               <select required value={formData.skillId} onChange={e => setFormData({ ...formData, skillId: e.target.value })} className="erp-select">
                 <option value="">-- Select Skill --</option>
                 {skills.map(s => <option key={s._id} value={s._id}>{s.name}</option>)}
@@ -141,7 +174,7 @@ export const TechnicalQuestionBank = () => {
 
           <div className="flex justify-end gap-2 border-t pt-3">
             <button type="button" onClick={() => setIsModalOpen(false)} className="btn-erp-secondary">Cancel</button>
-            <button type="submit" className="btn-erp-primary">Add Question</button>
+            <button type="submit" className="btn-erp-primary">{editingId ? "Save Question Changes" : "Add Question"}</button>
           </div>
         </form>
       </Modal>

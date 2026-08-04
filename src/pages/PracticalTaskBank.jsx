@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { DataTable } from '../components/common/DataTable';
 import { Modal } from '../components/common/Modal';
-import { FileCode, Plus, Trash2 } from 'lucide-react';
+import { FileCode, Plus, Trash2, Edit } from 'lucide-react';
 import { Badge } from '../components/common/Badge';
 
 export const PracticalTaskBank = () => {
@@ -10,6 +10,7 @@ export const PracticalTaskBank = () => {
   const [tasks, setTasks] = useState([]);
   const [profiles, setProfiles] = useState([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingId, setEditingId] = useState(null);
 
   const [formData, setFormData] = useState({
     taskTitle: '',
@@ -39,20 +40,49 @@ export const PracticalTaskBank = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const res = await authFetch('/api/tasks', {
-        method: 'POST',
+      const method = editingId ? 'PUT' : 'POST';
+      const url = editingId ? `/api/tasks/${editingId}` : '/api/tasks';
+
+      const res = await authFetch(url, {
+        method,
         body: JSON.stringify(formData)
       });
+
       if (res.success) {
         setIsModalOpen(false);
-        setFormData({ taskTitle: '', taskDescription: '', profileId: '', difficulty: 'Medium', expectedTimeMinutes: 45, maxMarks: 100 });
+        setEditingId(null);
+        resetForm();
         fetchData();
       } else {
-        alert(res.message || 'Failed');
+        alert(res.message || 'Operation failed');
       }
     } catch (err) {
       alert(err.message);
     }
+  };
+
+  const resetForm = () => {
+    setFormData({
+      taskTitle: '',
+      taskDescription: '',
+      profileId: profiles[0]?._id || '',
+      difficulty: 'Medium',
+      expectedTimeMinutes: 45,
+      maxMarks: 100
+    });
+  };
+
+  const handleEdit = (t) => {
+    setEditingId(t._id);
+    setFormData({
+      taskTitle: t.taskTitle,
+      taskDescription: t.taskDescription,
+      profileId: t.profileId?._id || t.profileId,
+      difficulty: t.difficulty || 'Medium',
+      expectedTimeMinutes: t.expectedTimeMinutes || 45,
+      maxMarks: t.maxMarks || 100
+    });
+    setIsModalOpen(true);
   };
 
   const handleDelete = async (id) => {
@@ -71,9 +101,14 @@ export const PracticalTaskBank = () => {
     { header: 'Expected Time', accessor: 'expectedTimeMinutes', render: t => `${t.expectedTimeMinutes} mins` },
     { header: 'Max Marks', accessor: 'maxMarks', render: t => t.maxMarks },
     { header: 'Actions', accessor: '_id', render: t => (
-      <button onClick={() => handleDelete(t._id)} className="p-1 border text-red-600 hover:bg-red-50 rounded">
-        <Trash2 size={13} />
-      </button>
+      <div className="flex items-center gap-1">
+        <button onClick={() => handleEdit(t)} className="p-1 border text-erp-primary hover:bg-gray-100 rounded" title="Edit Task">
+          <Edit size={13} />
+        </button>
+        <button onClick={() => handleDelete(t._id)} className="p-1 border text-red-600 hover:bg-red-50 rounded" title="Delete Task">
+          <Trash2 size={13} />
+        </button>
+      </div>
     )}
   ];
 
@@ -86,26 +121,26 @@ export const PracticalTaskBank = () => {
           </h2>
           <p className="text-xs text-gray-600">Repository for automated Random 2 Practical Tasks drawer generation.</p>
         </div>
-        <button onClick={() => setIsModalOpen(true)} className="btn-erp-primary flex items-center gap-1">
+        <button onClick={() => { setEditingId(null); resetForm(); setIsModalOpen(true); }} className="btn-erp-primary flex items-center gap-1">
           <Plus size={14} /> Add Practical Task
         </button>
       </div>
 
       <DataTable columns={columns} data={tasks} searchPlaceholder="Search tasks..." />
 
-      <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title="Create Practical Task">
+      <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title={editingId ? "Edit Practical Task" : "Create Practical Task"}>
         <form onSubmit={handleSubmit} className="space-y-4 text-xs">
           <div>
-            <label className="block font-semibold text-gray-700 mb-1">Task Title</label>
+            <label className="block font-semibold text-gray-700 mb-1">Task Title *</label>
             <input type="text" required value={formData.taskTitle} onChange={e => setFormData({ ...formData, taskTitle: e.target.value })} className="erp-input" />
           </div>
           <div>
-            <label className="block font-semibold text-gray-700 mb-1">Task Description / Requirements</label>
+            <label className="block font-semibold text-gray-700 mb-1">Task Description / Requirements *</label>
             <textarea required rows={4} value={formData.taskDescription} onChange={e => setFormData({ ...formData, taskDescription: e.target.value })} className="erp-input" />
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block font-semibold text-gray-700 mb-1">Applied Profile</label>
+              <label className="block font-semibold text-gray-700 mb-1">Applied Profile *</label>
               <select required value={formData.profileId} onChange={e => setFormData({ ...formData, profileId: e.target.value })} className="erp-select">
                 <option value="">-- Select Profile --</option>
                 {profiles.map(p => <option key={p._id} value={p._id}>{p.title}</option>)}
@@ -118,7 +153,7 @@ export const PracticalTaskBank = () => {
           </div>
           <div className="flex justify-end gap-2 border-t pt-3">
             <button type="button" onClick={() => setIsModalOpen(false)} className="btn-erp-secondary">Cancel</button>
-            <button type="submit" className="btn-erp-primary">Add Task</button>
+            <button type="submit" className="btn-erp-primary">{editingId ? "Save Task Changes" : "Add Task"}</button>
           </div>
         </form>
       </Modal>
