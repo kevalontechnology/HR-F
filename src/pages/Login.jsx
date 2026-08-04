@@ -2,18 +2,19 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { 
   Lock, User, KeyRound, Search, Ticket, FileCode, ShieldCheck, 
-  CheckCircle2, Building2, Clock, Sparkles, ArrowRight, ShieldAlert, BadgeCheck, UserCheck, Mail, Phone 
+  CheckCircle2, Building2, Clock, Sparkles, ArrowRight, ShieldAlert, BadgeCheck, UserCheck, Mail, Phone, Briefcase 
 } from 'lucide-react';
 import logoImg from '../Kevalon_Technology_Logo_Transparent.png';
 import { StageBadge } from '../components/common/Badge';
 import { CandidatePortal } from './CandidatePortal';
+import { CareersPage } from './CareersPage';
 import { getApiUrl } from '../config/api';
 
 export const Login = () => {
   const { login, loading } = useAuth();
   
-  // Tab State: 'candidate_login' | 'candidate_track' | 'employee'
-  const [activeTab, setActiveTab] = useState('candidate_login');
+  // Tab State: 'careers' | 'candidate_login' | 'candidate_track' | 'employee'
+  const [activeTab, setActiveTab] = useState('careers');
 
   // Candidate Authentication State (Requires BOTH Email AND Mobile Number)
   const [candidateEmail, setCandidateEmail] = useState('');
@@ -89,7 +90,7 @@ export const Login = () => {
       }
     } catch (err) {
       setCandidateAuthError('Network error. Please try logging in again.');
-    } finally {
+    } font: {
       setCandidateAuthLoading(false);
     }
   };
@@ -145,9 +146,19 @@ export const Login = () => {
     return <CandidatePortal candidate={loggedInCandidate} onLogout={handleCandidateLogout} />;
   }
 
+  // IF ACTIVE TAB IS CAREERS, RENDER THE CORPORATE CAREERS PAGE
+  if (activeTab === 'careers') {
+    return (
+      <CareersPage 
+        onNavigateCandidateLogin={() => setActiveTab('candidate_login')} 
+        onNavigateEmployeeLogin={() => setActiveTab('employee')} 
+      />
+    );
+  }
+
   return (
     <div 
-      className="min-h-screen bg-slate-900 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-slate-800 via-slate-900 to-black flex flex-col justify-between items-center p-4 sm:p-6 select-none"
+      className="min-h-screen bg-slate-900 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-slate-800 via-slate-900 to-black flex flex-col justify-between items-center p-4 sm:p-6 select-none font-sans"
       onContextMenu={e => e.preventDefault()}
     >
       {/* Top Navbar Header */}
@@ -156,22 +167,25 @@ export const Login = () => {
           <img src={logoImg} alt="Kevalon Technology Logo" className="h-9 w-auto object-contain drop-shadow-md" />
           <div className="hidden sm:block border-l border-white/20 pl-3">
             <h1 className="text-sm font-extrabold tracking-wider uppercase text-white">Kevalon Technology</h1>
-            <p className="text-[10px] text-blue-300 font-medium tracking-wide">Enterprise Recruitment CRM System</p>
+            <p className="text-[10px] text-blue-300 font-medium tracking-wide">Enterprise Recruitment CRM & Careers Portal</p>
           </div>
         </div>
 
         <div className="flex items-center gap-2">
-          <span className="hidden md:inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-400 bg-emerald-950/60 border border-emerald-500/30 px-2.5 py-1 rounded-full">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping"></span>
-            System Status: Active
-          </span>
+          <button
+            onClick={() => setActiveTab('careers')}
+            className="text-xs font-bold bg-white/10 hover:bg-white/20 text-white px-3 py-1.5 rounded-lg border border-white/20 transition flex items-center gap-1.5"
+          >
+            <Briefcase size={13} className="text-yellow-400" /> Careers Portal
+          </button>
+          
           <button
             onClick={() => setActiveTab(activeTab === 'employee' ? 'candidate_login' : 'employee')}
             className="text-xs font-bold bg-white/10 hover:bg-white/20 text-white px-3 py-1.5 rounded-lg border border-white/20 transition flex items-center gap-1.5"
           >
             {activeTab === 'employee' ? (
               <>
-                <Ticket size={13} className="text-emerald-400" /> Candidate Portal
+                <Ticket size={13} className="text-emerald-400" /> Candidate Sign In
               </>
             ) : (
               <>
@@ -200,60 +214,72 @@ export const Login = () => {
               Kevalon Technology
             </h2>
             <p className="text-xs text-blue-100 uppercase tracking-widest font-semibold mt-1 flex items-center gap-1">
-              <Sparkles size={13} className="text-yellow-400" /> Recruitment CRM & Candidate Portal
+              <Sparkles size={13} className="text-yellow-400" /> Enterprise ATS & Candidate Portal
             </p>
           </div>
         </div>
 
         {/* Tab Selector Segmented Bar */}
-        <div className="p-2 bg-slate-100 border-b border-gray-200 grid grid-cols-3 gap-1.5 text-xs font-bold">
+        <div className="p-2 bg-slate-100 border-b border-gray-200 grid grid-cols-4 gap-1 text-[11px] font-bold">
+          <button
+            onClick={() => setActiveTab('careers')}
+            className={`py-2 px-1.5 rounded-xl flex items-center justify-center gap-1 transition-all duration-200 ${
+              activeTab === 'careers'
+                ? 'bg-[#034665] text-white shadow-md font-extrabold'
+                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/70'
+            }`}
+          >
+            <Briefcase size={14} className={activeTab === 'careers' ? 'text-yellow-400' : ''} />
+            <span>Careers</span>
+          </button>
+
           <button
             onClick={() => setActiveTab('candidate_login')}
-            className={`py-2.5 px-2 rounded-xl flex items-center justify-center gap-1.5 transition-all duration-200 ${
+            className={`py-2 px-1.5 rounded-xl flex items-center justify-center gap-1 transition-all duration-200 ${
               activeTab === 'candidate_login'
                 ? 'bg-[#034665] text-white shadow-md font-extrabold'
                 : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/70'
             }`}
           >
-            <User size={15} className={activeTab === 'candidate_login' ? 'text-yellow-400' : ''} />
-            <span>Candidate Sign In</span>
+            <User size={14} className={activeTab === 'candidate_login' ? 'text-yellow-400' : ''} />
+            <span>Candidate Login</span>
           </button>
 
           <button
             onClick={() => setActiveTab('candidate_track')}
-            className={`py-2.5 px-2 rounded-xl flex items-center justify-center gap-1.5 transition-all duration-200 ${
+            className={`py-2 px-1.5 rounded-xl flex items-center justify-center gap-1 transition-all duration-200 ${
               activeTab === 'candidate_track'
                 ? 'bg-[#034665] text-white shadow-md font-extrabold'
                 : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/70'
             }`}
           >
-            <Ticket size={15} className={activeTab === 'candidate_track' ? 'text-emerald-400' : ''} />
-            <span>Quick Status Track</span>
+            <Ticket size={14} className={activeTab === 'candidate_track' ? 'text-emerald-400' : ''} />
+            <span>Quick Track</span>
           </button>
 
           <button
             onClick={() => setActiveTab('employee')}
-            className={`py-2.5 px-2 rounded-xl flex items-center justify-center gap-1.5 transition-all duration-200 ${
+            className={`py-2 px-1.5 rounded-xl flex items-center justify-center gap-1 transition-all duration-200 ${
               activeTab === 'employee'
                 ? 'bg-[#034665] text-white shadow-md font-extrabold'
                 : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/70'
             }`}
           >
-            <Lock size={15} className={activeTab === 'employee' ? 'text-blue-400' : ''} />
+            <Lock size={14} className={activeTab === 'employee' ? 'text-blue-400' : ''} />
             <span>Employee Login</span>
           </button>
         </div>
 
-        {/* TAB 1: CANDIDATE SIGN IN (BOTH MOBILE AND EMAIL REQUIRED) */}
+        {/* TAB: CANDIDATE SIGN IN (BOTH MOBILE AND EMAIL REQUIRED) */}
         {activeTab === 'candidate_login' && (
           <div className="p-6 sm:p-8 space-y-5">
             <div className="text-center space-y-1">
               <span className="px-3 py-1 bg-blue-50 text-blue-900 text-[11px] font-extrabold uppercase tracking-wider rounded-full inline-flex items-center gap-1 border border-blue-200 mb-1">
                 <User size={12} className="text-[#034665]" /> Candidate Self-Service Login
               </span>
-              <h3 className="text-lg font-black text-slate-900">Sign In to Your Candidate Profile</h3>
+              <h3 className="text-lg font-black text-slate-900">Sign In to Candidate Dashboard</h3>
               <p className="text-xs text-slate-500 max-w-md mx-auto">
-                Both registered Mobile Number AND Email Address are strictly required to access your profile.
+                Both registered Mobile Number AND Email Address are strictly required to access your ATS profile.
               </p>
             </div>
 
@@ -295,23 +321,23 @@ export const Login = () => {
               <button
                 type="submit"
                 disabled={candidateAuthLoading}
-                className="w-full py-3 bg-[#034665] hover:bg-[#023249] text-white text-xs font-black uppercase tracking-wider rounded-xl transition-all shadow-md flex items-center justify-center gap-2"
+                className="w-full py-3 bg-[#034665] hover:bg-[#023249] text-white text-xs font-black uppercase tracking-wider rounded-xl transition-all shadow-md flex items-center justify-center gap-2 cursor-pointer"
               >
                 <UserCheck size={16} />
-                {candidateAuthLoading ? 'Authenticating Candidate...' : 'Sign In to Candidate Profile'}
+                {candidateAuthLoading ? 'Authenticating Candidate...' : 'Sign In to Candidate ATS Dashboard'}
               </button>
             </form>
           </div>
         )}
 
-        {/* TAB 2: QUICK TRACKER SEARCH (NO LOGIN REQUIRED) */}
+        {/* TAB: QUICK TRACKER SEARCH (NO LOGIN REQUIRED) */}
         {activeTab === 'candidate_track' && (
           <div className="p-6 sm:p-8 space-y-6">
             <div className="text-center space-y-1">
               <span className="px-3 py-1 bg-emerald-50 text-emerald-900 text-[11px] font-extrabold uppercase tracking-wider rounded-full inline-flex items-center gap-1 border border-emerald-200 mb-1">
                 <Ticket size={12} className="text-emerald-700" /> Real-Time Quick Tracker
               </span>
-              <h3 className="text-lg font-black text-slate-900">Check Your Interview Round & Practical Task</h3>
+              <h3 className="text-lg font-black text-slate-900">Check Your Interview Stage Live</h3>
               <p className="text-xs text-slate-500 max-w-md mx-auto">
                 Enter your Candidate Code (e.g. CAND-1001), Token Number, Mobile Number, or Enrollment No.
               </p>
@@ -333,7 +359,7 @@ export const Login = () => {
                 <button
                   type="submit"
                   disabled={searching}
-                  className="absolute right-1.5 py-2 px-4 bg-[#034665] hover:bg-[#023249] text-white text-xs font-bold rounded-lg transition-all shadow-md flex items-center gap-1.5 disabled:opacity-50"
+                  className="absolute right-1.5 py-2 px-4 bg-[#034665] hover:bg-[#023249] text-white text-xs font-bold rounded-lg transition-all shadow-md flex items-center gap-1.5 disabled:opacity-50 cursor-pointer"
                 >
                   {searching ? 'Searching...' : (
                     <>
@@ -402,20 +428,19 @@ export const Login = () => {
                   </div>
                 </div>
 
-                {/* PRACTICAL TASKS SECTION (WITH STRICT ANTI-COPY PROTECTION) */}
+                {/* PRACTICAL TASKS SECTION */}
                 {(candidateResult.stage.includes('PRACTICAL') || candidateResult.stage === 'TECHNICAL_COMPLETED') ? (
                   <div 
                     className="p-4 border-2 border-purple-300 bg-purple-50/60 rounded-xl space-y-3 shadow-md select-none"
                     onCopy={(e) => { e.preventDefault(); alert("Copying is disabled."); }}
                     onCut={(e) => { e.preventDefault(); alert("Copying is disabled."); }}
                     onContextMenu={(e) => e.preventDefault()}
-                    style={{ userSelect: 'none', WebkitUserSelect: 'none', msUserSelect: 'none' }}
                   >
                     <div className="flex items-center justify-between border-b border-purple-200 pb-2">
                       <h4 className="font-extrabold text-xs text-purple-950 uppercase tracking-wide flex items-center gap-1.5">
                         <FileCode size={16} className="text-purple-700" /> Assigned Practical Coding Tasks
                       </h4>
-                      <span className="text-[10px] bg-purple-900 text-white font-extrabold px-2.5 py-0.5 rounded-full flex items-center gap-1 shadow-2xs">
+                      <span className="text-[10px] bg-purple-900 text-white font-extrabold px-2.5 py-0.5 rounded-full flex items-center gap-1">
                         <ShieldAlert size={12} className="text-yellow-400" /> Protected (Anti-Copy On)
                       </span>
                     </div>
@@ -429,7 +454,6 @@ export const Login = () => {
                         <div 
                           key={idx} 
                           className="p-3.5 bg-white border border-purple-200 rounded-lg space-y-2 shadow-xs select-none"
-                          style={{ userSelect: 'none', WebkitUserSelect: 'none' }}
                         >
                           <div className="flex items-center justify-between">
                             <span className="font-black text-purple-950 text-xs sm:text-sm">Task #{idx + 1}: {task.taskTitle}</span>
@@ -455,7 +479,7 @@ export const Login = () => {
           </div>
         )}
 
-        {/* TAB 3: EMPLOYEE PORTAL LOGIN */}
+        {/* TAB: EMPLOYEE PORTAL LOGIN */}
         {activeTab === 'employee' && (
           <div className="p-6 sm:p-8 space-y-5">
             <div className="text-center space-y-1">
@@ -504,7 +528,7 @@ export const Login = () => {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full py-3 bg-[#034665] hover:bg-[#023249] text-white text-xs font-black uppercase tracking-wider rounded-xl transition-all shadow-md flex items-center justify-center gap-2"
+                className="w-full py-3 bg-[#034665] hover:bg-[#023249] text-white text-xs font-black uppercase tracking-wider rounded-xl transition-all shadow-md flex items-center justify-center gap-2 cursor-pointer"
               >
                 <KeyRound size={16} />
                 {loading ? 'Authenticating Credentials...' : 'Sign In to Workstation Portal'}
@@ -543,7 +567,7 @@ export const Login = () => {
         {/* Footer Security Badge Banner */}
         <div className="p-3 bg-slate-100 border-t border-slate-200 text-center flex items-center justify-center gap-2 text-[11px] text-slate-600 font-semibold">
           <ShieldCheck size={14} className="text-emerald-600" />
-          <span>256-Bit SSL Encrypted Enterprise Portal</span>
+          <span>256-Bit SSL Encrypted Enterprise Portal &bull; Kevalon Technology</span>
         </div>
       </main>
 
