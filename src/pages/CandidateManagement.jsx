@@ -57,7 +57,7 @@ export const CandidateManagement = () => {
     "Full Name": "Sneha Verma",
     "Enrollment No.": "ENR-2026-002",
     "Contact No.": "9876543211",
-    "Profile Applied for": "MERN Stack Developer",
+    "Profile Applied for": "Python Django Developer",
     "College Name": "Nirma University",
     "Branch": "Information Technology",
     "Semester": "8",
