@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { 
   Lock, User, KeyRound, Search, Ticket, FileCode, ShieldCheck, 
-  CheckCircle2, Building2, Clock, Sparkles, ArrowRight, ShieldAlert, BadgeCheck 
+  CheckCircle2, Building2, Clock, Sparkles, ArrowRight, ShieldAlert, BadgeCheck, UserCheck 
 } from 'lucide-react';
 import logoImg from '../Kevalon_Technology_Logo_Transparent.png';
 import { StageBadge } from '../components/common/Badge';
