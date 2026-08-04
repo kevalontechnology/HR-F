@@ -38,34 +38,21 @@ export const CandidateManagement = () => {
 
   const sampleExcelJson = `[
   {
-    "Email Address": "aarav.patel@gmail.com",
-    "Full Name": "Aarav Patel",
-    "Enrollment No.": "ENR-2026-001",
-    "Contact No.": "9876543210",
-    "Profile Applied for": "MERN Stack Developer",
-    "College Name": "L.D. College of Engineering",
-    "Branch": "Computer Engineering",
-    "Semester": "8",
-    "Percentage in 10th": "88.5%",
-    "Percentage in 12th": "85.2%",
-    "Percentage in Diploma": "N/A",
-    "Current CPI/SPI": "8.75",
-    "Submit Resume": "https://drive.google.com/file/d/sample_resume_1"
-  },
-  {
-    "Email Address": "sneha.verma@gmail.com",
-    "Full Name": "Sneha Verma",
-    "Enrollment No.": "ENR-2026-002",
-    "Contact No.": "9876543211",
-    "Profile Applied for": "Python Django Developer",
-    "College Name": "Nirma University",
-    "Branch": "Information Technology",
-    "Semester": "8",
-    "Percentage in 10th": "91.0%",
-    "Percentage in 12th": "89.4%",
-    "Percentage in Diploma": "N/A",
-    "Current CPI/SPI": "9.10",
-    "Submit Resume": "https://drive.google.com/file/d/sample_resume_2"
+    "fullName": "Vansh P Patel",
+    "email": "vanshpatel1496@gmail.com",
+    "enrollmentNo": "2401031800033",
+    "contactNo": "8200925369",
+    "appliedProfile": {
+      "$oid": "6a724609c1a2418815e96130"
+    },
+    "collegeName": "SOCET",
+    "branch": "B.Tech - CSE",
+    "semester": 5,
+    "tenthPercentage": "73",
+    "twelfthPercentage": "74",
+    "diplomaPercentage": "NA",
+    "currentCpiSpi": "8.75 CPI",
+    "resume": "https://drive.google.com/open?id=1YW3IXr7OOtEbhfSeZ9HYOYvlGp3NVMr9"
   }
 ]`;
 
