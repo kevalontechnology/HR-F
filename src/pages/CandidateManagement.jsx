@@ -3,19 +3,24 @@ import { useAuth } from '../context/AuthContext';
 import { DataTable } from '../components/common/DataTable';
 import { Modal } from '../components/common/Modal';
 import { StageBadge } from '../components/common/Badge';
-import { UserPlus, Upload, Eye, Trash2, Download, ExternalLink, GraduationCap } from 'lucide-react';
+import { UserPlus, Upload, Eye, Trash2, ExternalLink, GraduationCap, UserCheck, RefreshCw, User } from 'lucide-react';
 
 export const CandidateManagement = () => {
   const { authFetch } = useAuth();
   const [candidates, setCandidates] = useState([]);
   const [profiles, setProfiles] = useState([]);
-  const [skillsList, setSkillsList] = useState([]);
+  const [employees, setEmployees] = useState([]);
   const [drives, setDrives] = useState([]);
 
   const [activeStageFilter, setActiveStageFilter] = useState('ALL');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isImportOpen, setIsImportOpen] = useState(false);
   const [detailCandidate, setDetailCandidate] = useState(null);
+
+  // Re-assignment Modal State
+  const [reassignCandidate, setReassignCandidate] = useState(null);
+  const [reassignStage, setReassignStage] = useState('Technical');
+  const [reassignInterviewerId, setReassignInterviewerId] = useState('');
 
   const [formData, setFormData] = useState({
     fullName: '',
@@ -66,8 +71,8 @@ export const CandidateManagement = () => {
       const pRes = await authFetch('/api/profiles');
       if (pRes.success) setProfiles(pRes.data || []);
 
-      const sRes = await authFetch('/api/skills');
-      if (sRes.success) setSkillsList(sRes.data || []);
+      const eRes = await authFetch('/api/employees');
+      if (eRes.success) setEmployees(eRes.data || []);
 
       const dRes = await authFetch('/api/drives');
       if (dRes.success) setDrives(dRes.data || []);
@@ -146,6 +151,36 @@ export const CandidateManagement = () => {
     }
   };
 
+  const handleReassignSubmit = async (e) => {
+    e.preventDefault();
+    if (!reassignCandidate || !reassignInterviewerId) {
+      alert('Please select an interviewer.');
+      return;
+    }
+
+    try {
+      const res = await authFetch('/api/candidates/assign', {
+        method: 'POST',
+        body: JSON.stringify({
+          candidateId: reassignCandidate._id,
+          stageType: reassignStage,
+          interviewerId: reassignInterviewerId
+        })
+      });
+
+      if (res.success) {
+        alert(`Successfully reassigned ${reassignCandidate.fullName} (${reassignCandidate.candidateCode}) to new interviewer!`);
+        setReassignCandidate(null);
+        setReassignInterviewerId('');
+        fetchCandidates();
+      } else {
+        alert(res.message || 'Re-assignment failed');
+      }
+    } catch (err) {
+      alert(err.message);
+    }
+  };
+
   const handleDelete = async (id) => {
     if (!confirm('Are you sure you want to delete this candidate?')) return;
     try {
@@ -186,12 +221,39 @@ export const CandidateManagement = () => {
       </div>
     )},
     { header: 'Applied Profile', accessor: 'appliedProfileId', render: c => c.appliedProfileId?.title || c.appliedProfileName || 'N/A' },
-    { header: 'CPI / SPI', accessor: 'currentCpiSpi', render: c => (
-      <span className="font-bold text-emerald-800">{c.currentCpiSpi || 'N/A'}</span>
+    
+    // ADMIN ASSIGNED INTERVIEWER COLUMN
+    { header: 'Assigned Interviewer', accessor: 'assignedTechnicalInterviewer', render: c => (
+      <div className="text-[11px] space-y-0.5">
+        <div>
+          <span className="text-[9px] text-gray-500 uppercase font-semibold">Tech: </span>
+          <strong className="text-blue-900">{c.assignedTechnicalInterviewer?.fullName || 'Unassigned'}</strong>
+        </div>
+        <div>
+          <span className="text-[9px] text-gray-500 uppercase font-semibold">Practical: </span>
+          <strong className="text-purple-900">{c.assignedPracticalInterviewer?.fullName || 'Unassigned'}</strong>
+        </div>
+        <div>
+          <span className="text-[9px] text-gray-500 uppercase font-semibold">HR: </span>
+          <strong className="text-teal-900">{c.assignedHrInterviewer?.fullName || 'Unassigned'}</strong>
+        </div>
+      </div>
     )},
+
     { header: 'Stage', accessor: 'stage', render: c => <StageBadge stage={c.stage} /> },
     { header: 'Actions', accessor: '_id', render: c => (
       <div className="flex items-center gap-1">
+        <button 
+          onClick={() => {
+            setReassignCandidate(c);
+            setReassignStage(c.stage.includes('PRACTICAL') ? 'Practical' : c.stage.includes('HR') ? 'HR' : 'Technical');
+            setReassignInterviewerId('');
+          }}
+          className="p-1 border border-yellow-300 bg-yellow-50 text-yellow-800 hover:bg-yellow-100 rounded text-xs flex items-center gap-1"
+          title="Change Assigned Interviewer"
+        >
+          <UserCheck size={13} /> Change User
+        </button>
         <button 
           onClick={() => setDetailCandidate(c)}
           className="p-1 border border-erp-border hover:bg-gray-100 rounded text-erp-primary text-xs flex items-center gap-1"
@@ -216,10 +278,10 @@ export const CandidateManagement = () => {
       <div className="bg-white p-4 border border-erp-border rounded-xs shadow-xs flex flex-col sm:flex-row items-center justify-between gap-4">
         <div>
           <h2 className="text-base font-bold text-erp-primary uppercase tracking-wide flex items-center gap-2">
-            <GraduationCap size={20} /> Candidate Master Directory & Excel Import
+            <GraduationCap size={20} /> Candidate Master Directory & Assignment Controller
           </h2>
           <p className="text-xs text-gray-600">
-            Campus candidate records, enrollment numbers, college academic scores, and Excel bulk parser.
+            View assigned interviewers for candidates and manually override / change user assignments.
           </p>
         </div>
 
@@ -270,8 +332,74 @@ export const CandidateManagement = () => {
       <DataTable
         columns={columns}
         data={filteredCandidates}
-        searchPlaceholder="Search by name, code, enrollment, college, email..."
+        searchPlaceholder="Search by candidate name, code, enrollment, interviewer name..."
       />
+
+      {/* Admin Re-assign / Change Interviewer Modal */}
+      <Modal isOpen={!!reassignCandidate} onClose={() => setReassignCandidate(null)} title={`Re-assign Interviewer: ${reassignCandidate?.fullName}`}>
+        {reassignCandidate && (
+          <form onSubmit={handleReassignSubmit} className="space-y-4 text-xs">
+            <div className="p-3 bg-yellow-50 border border-yellow-300 text-yellow-900 rounded space-y-1">
+              <span className="font-bold flex items-center gap-1"><UserCheck size={14} /> Admin Interviewer Assignment Override:</span>
+              <p>Candidate: <strong>{reassignCandidate.fullName} ({reassignCandidate.candidateCode})</strong></p>
+              <p className="text-[11px]">Change the assigned interviewer for Technical, Practical, or HR workstation queue.</p>
+            </div>
+
+            {/* Current Assignments Summary */}
+            <div className="grid grid-cols-3 gap-2 bg-gray-50 p-3 rounded border text-center text-xs">
+              <div className="p-2 bg-blue-50 border border-blue-200 rounded">
+                <span className="text-[10px] text-blue-700 font-bold block uppercase">Current Tech</span>
+                <strong className="text-blue-900">{reassignCandidate.assignedTechnicalInterviewer?.fullName || 'None'}</strong>
+              </div>
+              <div className="p-2 bg-purple-50 border border-purple-200 rounded">
+                <span className="text-[10px] text-purple-700 font-bold block uppercase">Current Practical</span>
+                <strong className="text-purple-900">{reassignCandidate.assignedPracticalInterviewer?.fullName || 'None'}</strong>
+              </div>
+              <div className="p-2 bg-teal-50 border border-teal-200 rounded">
+                <span className="text-[10px] text-teal-700 font-bold block uppercase">Current HR</span>
+                <strong className="text-teal-900">{reassignCandidate.assignedHrInterviewer?.fullName || 'None'}</strong>
+              </div>
+            </div>
+
+            <div>
+              <label className="block font-semibold text-gray-700 mb-1">Select Stage to Re-assign *</label>
+              <select
+                value={reassignStage}
+                onChange={e => setReassignStage(e.target.value)}
+                className="erp-select font-bold"
+              >
+                <option value="Technical">Technical Interview Stage</option>
+                <option value="Practical">Practical Task Stage</option>
+                <option value="HR">HR Evaluation Stage</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="block font-semibold text-gray-700 mb-1">Select New Interviewer / User *</label>
+              <select
+                required
+                value={reassignInterviewerId}
+                onChange={e => setReassignInterviewerId(e.target.value)}
+                className="erp-select font-bold text-erp-primary"
+              >
+                <option value="">-- Choose Eligible Employee / Interviewer --</option>
+                {employees.map(emp => (
+                  <option key={emp._id} value={emp._id}>
+                    {emp.fullName} ({emp.employeeCode}) - Role: {emp.roleId?.name || 'Employee'}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="flex justify-end gap-2 pt-3 border-t">
+              <button type="button" onClick={() => setReassignCandidate(null)} className="btn-erp-secondary">Cancel</button>
+              <button type="submit" className="btn-erp-primary flex items-center gap-1">
+                <RefreshCw size={14} /> Confirm Change Assignment
+              </button>
+            </div>
+          </form>
+        )}
+      </Modal>
 
       {/* Create Candidate Modal */}
       <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title="Register New Candidate (Campus / Walk-In)" maxWidth="max-w-3xl">
@@ -483,6 +611,39 @@ export const CandidateManagement = () => {
                 <p><strong>Branch / Semester:</strong> {detailCandidate.branch || 'N/A'} {detailCandidate.semester ? `(Sem ${detailCandidate.semester})` : ''}</p>
                 <p><strong>Profile Applied for:</strong> {detailCandidate.appliedProfileId?.title || detailCandidate.appliedProfileName || 'N/A'}</p>
                 <p><strong>Current Stage:</strong> <StageBadge stage={detailCandidate.stage} /></p>
+              </div>
+            </div>
+
+            {/* Admin Assigned Interviewer Card */}
+            <div className="border p-3 rounded bg-yellow-50/60 border-yellow-200 space-y-2">
+              <div className="flex items-center justify-between border-b pb-1">
+                <h4 className="font-bold text-yellow-900 uppercase flex items-center gap-1">
+                  <UserCheck size={15} /> Assigned Interviewers / Users
+                </h4>
+                <button
+                  onClick={() => {
+                    setReassignCandidate(detailCandidate);
+                    setDetailCandidate(null);
+                  }}
+                  className="btn-erp-primary py-0.5 px-2 text-[11px] flex items-center gap-1"
+                >
+                  <RefreshCw size={11} /> Change Assignment
+                </button>
+              </div>
+
+              <div className="grid grid-cols-3 gap-2 text-xs text-center">
+                <div className="p-2 bg-white rounded border border-yellow-200">
+                  <span className="text-[10px] text-gray-500 font-semibold uppercase block">Technical Stage</span>
+                  <strong className="text-blue-900 text-xs">{detailCandidate.assignedTechnicalInterviewer?.fullName || 'Not Assigned'}</strong>
+                </div>
+                <div className="p-2 bg-white rounded border border-yellow-200">
+                  <span className="text-[10px] text-gray-500 font-semibold uppercase block">Practical Stage</span>
+                  <strong className="text-purple-900 text-xs">{detailCandidate.assignedPracticalInterviewer?.fullName || 'Not Assigned'}</strong>
+                </div>
+                <div className="p-2 bg-white rounded border border-yellow-200">
+                  <span className="text-[10px] text-gray-500 font-semibold uppercase block">HR Stage</span>
+                  <strong className="text-teal-900 text-xs">{detailCandidate.assignedHrInterviewer?.fullName || 'Not Assigned'}</strong>
+                </div>
               </div>
             </div>
 
