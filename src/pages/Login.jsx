@@ -374,33 +374,7 @@ export const Login = () => {
               </button>
             </form>
 
-            {/* Quick Preset Selector */}
-            <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl text-center space-y-2">
-              <p className="text-[11px] font-black text-slate-600 uppercase tracking-wider">
-                Quick Sign-In Credentials Presets:
-              </p>
-              <div className="flex flex-wrap justify-center gap-2 text-[11px]">
-                <button
-                  onClick={() => setFastCredentials('admin', 'Admin@123')}
-                  className="px-3 py-1 bg-[#034665] text-white rounded-lg font-bold hover:opacity-90 transition shadow-2xs"
-                >
-                  Super Admin
-                </button>
-                <button
-                  onClick={() => setFastCredentials('vikram.tech', 'Tech@123')}
-                  className="px-3 py-1 bg-blue-700 text-white rounded-lg font-bold hover:opacity-90 transition shadow-2xs"
-                >
-                  Technical Interviewer
-                </button>
-                <button
-                  onClick={() => setFastCredentials('pooja.reception', 'Pooja@123')}
-                  className="px-3 py-1 bg-emerald-700 text-white rounded-lg font-bold hover:opacity-90 transition shadow-2xs"
-                >
-                  Receptionist
-                </button>
-              </div>
             </div>
-          </div>
         )}
 
         {/* Footer Security Badge Banner */}
