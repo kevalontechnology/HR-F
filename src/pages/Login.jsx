@@ -7,6 +7,8 @@ import {
 import logoImg from '../Kevalon_Technology_Logo_Transparent.png';
 import { StageBadge } from '../components/common/Badge';
 
+import { getApiUrl } from '../config/api';
+
 export const Login = () => {
   const { login, loading } = useAuth();
   
@@ -70,7 +72,8 @@ export const Login = () => {
     setPracticalTasks([]);
 
     try {
-      const response = await fetch(`/api/candidates/public-status?query=${encodeURIComponent(searchQuery.trim())}`);
+      const fullUrl = getApiUrl(`/api/candidates/public-status?query=${encodeURIComponent(searchQuery.trim())}`);
+      const response = await fetch(fullUrl);
       const data = await response.json();
 
       if (data.success) {
