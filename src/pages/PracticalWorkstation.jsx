@@ -4,7 +4,7 @@ import { Terminal, Send } from 'lucide-react';
 import { StageBadge } from '../components/common/Badge';
 
 export const PracticalWorkstation = () => {
-  const { authFetch } = useAuth();
+  const { user, authFetch } = useAuth();
   const [queueCandidates, setQueueCandidates] = useState([]);
   const [selectedCandidate, setSelectedCandidate] = useState(null);
   const [tasks, setTasks] = useState([]);
@@ -17,11 +17,22 @@ export const PracticalWorkstation = () => {
     try {
       const res = await authFetch('/api/candidates');
       if (res.success) {
-        setQueueCandidates(
-          (res.data || []).filter(c => 
-            c.stage === 'PRACTICAL_QUEUE' || c.stage === 'PRACTICAL_IN_PROGRESS' || c.stage === 'TECHNICAL_COMPLETED'
-          )
+        const allPractical = (res.data || []).filter(c => 
+          c.stage === 'PRACTICAL_QUEUE' || c.stage === 'PRACTICAL_IN_PROGRESS' || c.stage === 'TECHNICAL_COMPLETED'
         );
+
+        if (user?.employeeId && user?.role?.name !== 'Super Admin') {
+          const empIdStr = user.employeeId._id ? user.employeeId._id.toString() : user.employeeId.toString();
+          const myPractical = allPractical.filter(c => {
+            const assignedId = c.assignedPracticalInterviewer?._id 
+              ? c.assignedPracticalInterviewer._id.toString() 
+              : c.assignedPracticalInterviewer?.toString();
+            return assignedId === empIdStr || !assignedId;
+          });
+          setQueueCandidates(myPractical);
+        } else {
+          setQueueCandidates(allPractical);
+        }
       }
     } catch (err) {
       console.error(err);
@@ -30,7 +41,9 @@ export const PracticalWorkstation = () => {
 
   useEffect(() => {
     fetchPracticalQueue();
-  }, []);
+    const interval = setInterval(fetchPracticalQueue, 8000);
+    return () => clearInterval(interval);
+  }, [user]);
 
   const loadCandidateTasks = async (candidate) => {
     setSelectedCandidate(candidate);

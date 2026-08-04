@@ -4,7 +4,7 @@ import { Code, CheckCircle, XCircle, AlertCircle, Send, Users } from 'lucide-rea
 import { StageBadge } from '../components/common/Badge';
 
 export const TechnicalWorkstation = () => {
-  const { authFetch } = useAuth();
+  const { user, authFetch } = useAuth();
   const [queueCandidates, setQueueCandidates] = useState([]);
   const [selectedCandidate, setSelectedCandidate] = useState(null);
   const [questions, setQuestions] = useState([]);
@@ -17,11 +17,22 @@ export const TechnicalWorkstation = () => {
     try {
       const res = await authFetch('/api/candidates');
       if (res.success) {
-        setQueueCandidates(
-          (res.data || []).filter(c => 
-            c.stage === 'TECHNICAL_QUEUE' || c.stage === 'TECHNICAL_IN_PROGRESS'
-          )
+        const allTech = (res.data || []).filter(c => 
+          c.stage === 'TECHNICAL_QUEUE' || c.stage === 'TECHNICAL_IN_PROGRESS'
         );
+
+        if (user?.employeeId && user?.role?.name !== 'Super Admin') {
+          const empIdStr = user.employeeId._id ? user.employeeId._id.toString() : user.employeeId.toString();
+          const myTech = allTech.filter(c => {
+            const assignedId = c.assignedTechnicalInterviewer?._id 
+              ? c.assignedTechnicalInterviewer._id.toString() 
+              : c.assignedTechnicalInterviewer?.toString();
+            return assignedId === empIdStr || !assignedId;
+          });
+          setQueueCandidates(myTech);
+        } else {
+          setQueueCandidates(allTech);
+        }
       }
     } catch (err) {
       console.error(err);
@@ -30,7 +41,9 @@ export const TechnicalWorkstation = () => {
 
   useEffect(() => {
     fetchTechQueue();
-  }, []);
+    const interval = setInterval(fetchTechQueue, 8000);
+    return () => clearInterval(interval);
+  }, [user]);
 
   const loadCandidateQuestions = async (candidate) => {
     setSelectedCandidate(candidate);

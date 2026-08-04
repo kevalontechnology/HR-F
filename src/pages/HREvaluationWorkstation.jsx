@@ -4,7 +4,7 @@ import { UserCheck, Star, Send } from 'lucide-react';
 import { StageBadge } from '../components/common/Badge';
 
 export const HREvaluationWorkstation = () => {
-  const { authFetch } = useAuth();
+  const { user, authFetch } = useAuth();
   const [queueCandidates, setQueueCandidates] = useState([]);
   const [selectedCandidate, setSelectedCandidate] = useState(null);
   
@@ -19,11 +19,22 @@ export const HREvaluationWorkstation = () => {
     try {
       const res = await authFetch('/api/candidates');
       if (res.success) {
-        setQueueCandidates(
-          (res.data || []).filter(c => 
-            c.stage === 'HR_QUEUE' || c.stage === 'HR_IN_PROGRESS' || c.stage === 'PRACTICAL_COMPLETED'
-          )
+        const allHr = (res.data || []).filter(c => 
+          c.stage === 'HR_QUEUE' || c.stage === 'HR_IN_PROGRESS' || c.stage === 'PRACTICAL_COMPLETED'
         );
+
+        if (user?.employeeId && user?.role?.name !== 'Super Admin') {
+          const empIdStr = user.employeeId._id ? user.employeeId._id.toString() : user.employeeId.toString();
+          const myHr = allHr.filter(c => {
+            const assignedId = c.assignedHrInterviewer?._id 
+              ? c.assignedHrInterviewer._id.toString() 
+              : c.assignedHrInterviewer?.toString();
+            return assignedId === empIdStr || !assignedId;
+          });
+          setQueueCandidates(myHr);
+        } else {
+          setQueueCandidates(allHr);
+        }
       }
     } catch (err) {
       console.error(err);
@@ -32,7 +43,9 @@ export const HREvaluationWorkstation = () => {
 
   useEffect(() => {
     fetchHrQueue();
-  }, []);
+    const interval = setInterval(fetchHrQueue, 8000);
+    return () => clearInterval(interval);
+  }, [user]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
