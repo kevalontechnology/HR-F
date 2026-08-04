@@ -46,7 +46,7 @@ export const DataTable = ({
           </div>
         )}
 
-        <div className="flex items-center gap-2 ml-auto">
+        <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
           {actionButton}
         </div>
       </div>
@@ -86,8 +86,8 @@ export const DataTable = ({
       </div>
 
       {/* Pagination Footer */}
-      <div className="p-3 bg-erp-bg border-t border-erp-border flex items-center justify-between text-xs text-gray-600">
-        <div>
+      <div className="p-3 bg-erp-bg border-t border-erp-border flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-gray-600">
+        <div className="text-center sm:text-left">
           Showing {filteredData.length === 0 ? 0 : (currentPage - 1) * pageSize + 1} to {Math.min(currentPage * pageSize, filteredData.length)} of {filteredData.length} entries
         </div>
 

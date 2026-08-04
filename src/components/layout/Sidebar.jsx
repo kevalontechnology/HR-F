@@ -17,10 +17,11 @@ import {
   FileCode, 
   BellRing, 
   FileText,
-  ChevronRight
+  ChevronRight,
+  X
 } from 'lucide-react';
 
-export const Sidebar = ({ activeTab, setActiveTab }) => {
+export const Sidebar = ({ activeTab, setActiveTab, mobileMenuOpen, setMobileMenuOpen }) => {
   const { hasPermission } = useAuth();
 
   const menuSections = [
@@ -73,10 +74,25 @@ export const Sidebar = ({ activeTab, setActiveTab }) => {
     }
   ];
 
-  return (
-    <aside className="w-64 bg-[#023249] text-gray-200 min-h-[calc(100vh-3.5rem)] flex flex-col border-r border-erp-primary flex-shrink-0">
+  const handleSelectTab = (tabId) => {
+    setActiveTab(tabId);
+    if (setMobileMenuOpen) {
+      setMobileMenuOpen(false); // Close mobile drawer when option selected
+    }
+  };
+
+  const navContent = (
+    <div className="w-64 bg-[#023249] text-gray-200 h-full flex flex-col border-r border-erp-primary flex-shrink-0">
       <div className="p-3 bg-erp-primary text-white text-xs font-bold uppercase tracking-wider border-b border-white/10 flex items-center justify-between">
         <span>Navigation Menu</span>
+        {setMobileMenuOpen && (
+          <button 
+            onClick={() => setMobileMenuOpen(false)}
+            className="md:hidden p-1 text-gray-300 hover:text-white"
+          >
+            <X size={16} />
+          </button>
+        )}
       </div>
 
       <nav className="flex-1 py-2 overflow-y-auto space-y-4">
@@ -96,7 +112,7 @@ export const Sidebar = ({ activeTab, setActiveTab }) => {
                   return (
                     <button
                       key={item.id}
-                      onClick={() => setActiveTab(item.id)}
+                      onClick={() => handleSelectTab(item.id)}
                       className={`w-full flex items-center justify-between px-3 py-2 text-xs font-medium rounded-xs transition-colors ${
                         isActive
                           ? 'bg-erp-primary text-white font-semibold border-l-4 border-yellow-400 shadow-xs'
@@ -122,6 +138,30 @@ export const Sidebar = ({ activeTab, setActiveTab }) => {
         <div>Kevalon CRM v1.0.0 (Enterprise)</div>
         <div>Connected to REST API</div>
       </div>
-    </aside>
+    </div>
+  );
+
+  return (
+    <>
+      {/* Desktop Fixed Sidebar */}
+      <aside className="hidden md:block min-h-[calc(100vh-3.5rem)]">
+        {navContent}
+      </aside>
+
+      {/* Mobile Sliding Drawer & Backdrop */}
+      {mobileMenuOpen && (
+        <div className="fixed inset-0 z-50 flex md:hidden">
+          {/* Backdrop */}
+          <div 
+            className="fixed inset-0 bg-black/60 backdrop-blur-xs transition-opacity"
+            onClick={() => setMobileMenuOpen(false)}
+          />
+          {/* Drawer Content */}
+          <div className="relative z-10 h-full shadow-2xl animate-slideInLeft">
+            {navContent}
+          </div>
+        </div>
+      )}
+    </>
   );
 };

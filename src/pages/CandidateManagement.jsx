@@ -276,7 +276,7 @@ export const CandidateManagement = () => {
       {/* Create Candidate Modal */}
       <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title="Register New Candidate (Campus / Walk-In)" maxWidth="max-w-3xl">
         <form onSubmit={handleCreateSubmit} className="space-y-4 text-xs">
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
             <div>
               <label className="block font-semibold text-gray-700 mb-1">Full Name *</label>
               <input
@@ -309,7 +309,7 @@ export const CandidateManagement = () => {
             </div>
           </div>
 
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
             <div>
               <label className="block font-semibold text-gray-700 mb-1">Enrollment No.</label>
               <input
@@ -346,7 +346,7 @@ export const CandidateManagement = () => {
             </div>
           </div>
 
-          <div className="grid grid-cols-4 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
             <div>
               <label className="block font-semibold text-gray-700 mb-1">Branch</label>
               <input
@@ -387,7 +387,7 @@ export const CandidateManagement = () => {
             </div>
           </div>
 
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
             <div>
               <label className="block font-semibold text-gray-700 mb-1">Percentage in Diploma</label>
               <input

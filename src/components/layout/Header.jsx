@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
-import { Bell, User, LogOut, Key, Building2, CheckCircle } from 'lucide-react';
+import { Bell, User, LogOut, Key, Building2, Menu, X } from 'lucide-react';
 import { Modal } from '../common/Modal';
 
-export const Header = () => {
+export const Header = ({ mobileMenuOpen, setMobileMenuOpen }) => {
   const { user, logout, authFetch } = useAuth();
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
@@ -62,24 +62,33 @@ export const Header = () => {
   };
 
   return (
-    <header className="bg-erp-primary text-white h-14 flex items-center justify-between px-4 shadow-sm z-30 sticky top-0">
-      {/* Brand & ERP Title */}
-      <div className="flex items-center gap-3">
-        <div className="bg-white/10 p-1.5 rounded-xs border border-white/20">
-          <Building2 size={20} className="text-white" />
+    <header className="bg-erp-primary text-white h-14 flex items-center justify-between px-3 sm:px-4 shadow-sm z-40 sticky top-0">
+      {/* Brand & Mobile Hamburger Toggle */}
+      <div className="flex items-center gap-2 sm:gap-3">
+        {/* Mobile Hamburger Toggle Button */}
+        <button
+          onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+          className="md:hidden p-1.5 hover:bg-white/10 rounded-xs text-white transition"
+          aria-label="Toggle Navigation Menu"
+        >
+          {mobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
+        </button>
+
+        <div className="bg-white/10 p-1.5 rounded-xs border border-white/20 hidden xs:block">
+          <Building2 size={18} className="text-white" />
         </div>
         <div>
-          <h1 className="font-bold text-base tracking-wider uppercase leading-tight">
+          <h1 className="font-bold text-xs sm:text-sm md:text-base tracking-wider uppercase leading-tight">
             Kevalon Technology
           </h1>
-          <p className="text-[10px] text-gray-200 tracking-widest font-semibold uppercase">
+          <p className="text-[9px] sm:text-[10px] text-gray-200 tracking-widest font-semibold uppercase hidden sm:block">
             Recruitment CRM Enterprise Edition
           </p>
         </div>
       </div>
 
       {/* Right Controls */}
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-2 sm:gap-3">
         {/* Notification Bell */}
         <div className="relative">
           <button
@@ -97,7 +106,7 @@ export const Header = () => {
 
           {/* Notification Dropdown Drawer */}
           {showNotifications && (
-            <div className="absolute right-0 mt-2 w-80 bg-white text-gray-800 border border-erp-border rounded-xs shadow-xl z-50 overflow-hidden">
+            <div className="absolute right-0 mt-2 w-72 sm:w-80 bg-white text-gray-800 border border-erp-border rounded-xs shadow-xl z-50 overflow-hidden">
               <div className="bg-erp-primary text-white px-3 py-2 text-xs font-semibold uppercase flex items-center justify-between">
                 <span>Notification Center</span>
                 <span className="bg-white/20 px-1.5 py-0.5 rounded text-[10px]">{unreadCount} Unread</span>
@@ -130,11 +139,11 @@ export const Header = () => {
         </div>
 
         {/* Active User Information */}
-        <div className="flex items-center gap-2 border-l border-white/20 pl-4">
+        <div className="flex items-center gap-2 border-l border-white/20 pl-2 sm:pl-3">
           <div className="w-7 h-7 bg-white/10 rounded-xs flex items-center justify-center border border-white/20">
-            <User size={16} />
+            <User size={15} />
           </div>
-          <div className="hidden sm:block text-left">
+          <div className="hidden md:block text-left">
             <div className="text-xs font-bold leading-tight">{user?.username}</div>
             <div className="text-[10px] text-gray-200 uppercase font-semibold">
               {user?.role?.name || 'User'}
@@ -153,7 +162,7 @@ export const Header = () => {
 
         <button
           onClick={logout}
-          className="bg-red-700 hover:bg-red-800 text-white px-2.5 py-1 rounded-xs text-xs font-bold flex items-center gap-1 transition"
+          className="bg-red-700 hover:bg-red-800 text-white px-2 py-1 sm:px-2.5 rounded-xs text-xs font-bold flex items-center gap-1 transition"
           title="Logout"
         >
           <LogOut size={14} />
