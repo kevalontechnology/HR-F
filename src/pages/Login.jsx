@@ -1,6 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { Lock, User, KeyRound, Search, Ticket, FileCode, ShieldAlert, CheckCircle2, Building2, Clock, Sparkles } from 'lucide-react';
+import { 
+  Lock, User, KeyRound, Search, Ticket, FileCode, ShieldCheck, 
+  CheckCircle2, Building2, Clock, Sparkles, ArrowRight, ShieldAlert, BadgeCheck 
+} from 'lucide-react';
 import logoImg from '../Kevalon_Technology_Logo_Transparent.png';
 import { StageBadge } from '../components/common/Badge';
 
@@ -74,10 +77,10 @@ export const Login = () => {
         setCandidateResult(data.candidate);
         setPracticalTasks(data.practicalTasks || []);
       } else {
-        setSearchError(data.message || 'Candidate record not found.');
+        setSearchError(data.message || 'No candidate record found matching your query.');
       }
     } catch (err) {
-      setSearchError('Network error. Please try searching again.');
+      setSearchError('Network connection issue. Please try searching again.');
     } finally {
       setSearching(false);
     }
@@ -89,141 +92,213 @@ export const Login = () => {
   };
 
   return (
-    <div className="min-h-screen bg-erp-bg flex flex-col justify-center items-center p-4 select-none" onContextMenu={e => e.preventDefault()}>
-      {/* Outer Card Container */}
-      <div className="w-full max-w-xl bg-white border border-erp-border shadow-lg rounded-xs overflow-hidden">
-        
-        {/* Header Banner */}
-        <div className="bg-erp-primary text-white p-6 text-center border-b-4 border-erp-primaryHover flex flex-col items-center">
-          <img src={logoImg} alt="Kevalon Technology Logo" className="h-12 w-auto object-contain mb-2 drop-shadow-sm pointer-events-none" />
-          <h2 className="text-xl font-bold uppercase tracking-wider">Kevalon Technology</h2>
-          <p className="text-xs text-gray-200 uppercase tracking-widest font-semibold mt-1">
-            Recruitment CRM & Candidate Portal
-          </p>
+    <div 
+      className="min-h-screen bg-slate-900 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-slate-800 via-slate-900 to-black flex flex-col justify-between items-center p-4 sm:p-6 select-none"
+      onContextMenu={e => e.preventDefault()}
+    >
+      {/* Top Navbar Header */}
+      <header className="w-full max-w-4xl flex items-center justify-between py-3 px-4 bg-white/5 backdrop-blur-md border border-white/10 rounded-xl mb-4 text-white">
+        <div className="flex items-center gap-3">
+          <img src={logoImg} alt="Kevalon Technology Logo" className="h-9 w-auto object-contain drop-shadow-md" />
+          <div className="hidden sm:block border-l border-white/20 pl-3">
+            <h1 className="text-sm font-extrabold tracking-wider uppercase text-white">Kevalon Technology</h1>
+            <p className="text-[10px] text-blue-300 font-medium tracking-wide">Enterprise Recruitment CRM System</p>
+          </div>
         </div>
 
-        {/* Portal Mode Tab Switcher */}
-        <div className="flex border-b border-erp-border bg-gray-50 text-xs font-bold uppercase tracking-wider">
+        <div className="flex items-center gap-2">
+          <span className="hidden md:inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-400 bg-emerald-950/60 border border-emerald-500/30 px-2.5 py-1 rounded-full">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping"></span>
+            System Status: Active
+          </span>
+          <button
+            onClick={() => setActiveTab(activeTab === 'candidate' ? 'employee' : 'candidate')}
+            className="text-xs font-bold bg-white/10 hover:bg-white/20 text-white px-3 py-1.5 rounded-lg border border-white/20 transition flex items-center gap-1.5"
+          >
+            {activeTab === 'candidate' ? (
+              <>
+                <Lock size={13} className="text-blue-400" /> Employee Login
+              </>
+            ) : (
+              <>
+                <Ticket size={13} className="text-emerald-400" /> Candidate Status
+              </>
+            )}
+          </button>
+        </div>
+      </header>
+
+      {/* Main Glassmorphic Card Container */}
+      <main className="w-full max-w-2xl bg-white/95 backdrop-blur-xl border border-white/20 shadow-2xl rounded-2xl overflow-hidden my-auto">
+        
+        {/* Banner Section */}
+        <div className="bg-gradient-to-r from-[#034665] via-[#055b85] to-[#034665] text-white p-6 text-center relative overflow-hidden">
+          <div className="absolute -right-10 -bottom-10 opacity-10 pointer-events-none">
+            <Building2 size={200} />
+          </div>
+
+          <div className="relative z-10 flex flex-col items-center">
+            <div className="p-3 bg-white/10 backdrop-blur-md rounded-2xl border border-white/20 shadow-inner mb-3">
+              <img src={logoImg} alt="Kevalon Logo" className="h-12 sm:h-14 w-auto object-contain drop-shadow" />
+            </div>
+            
+            <h2 className="text-xl sm:text-2xl font-black uppercase tracking-wider text-white">
+              Kevalon Technology
+            </h2>
+            <p className="text-xs text-blue-100 uppercase tracking-widest font-semibold mt-1 flex items-center gap-1">
+              <Sparkles size={13} className="text-yellow-400" /> Recruitment CRM & Evaluation Portal
+            </p>
+          </div>
+        </div>
+
+        {/* Tab Selector Segmented Bar */}
+        <div className="p-2 bg-slate-100 border-b border-gray-200 grid grid-cols-2 gap-2 text-xs font-bold">
           <button
             onClick={() => setActiveTab('candidate')}
-            className={`flex-1 py-3 px-4 flex items-center justify-center gap-2 border-b-2 transition ${
+            className={`py-2.5 px-4 rounded-xl flex items-center justify-center gap-2 transition-all duration-200 ${
               activeTab === 'candidate'
-                ? 'border-erp-primary text-erp-primary bg-white shadow-xs'
-                : 'border-transparent text-gray-500 hover:text-gray-800'
+                ? 'bg-[#034665] text-white shadow-md font-extrabold'
+                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/70'
             }`}
           >
-            <Ticket size={16} /> Candidate Status & Task Portal
+            <Ticket size={16} className={activeTab === 'candidate' ? 'text-yellow-400' : ''} />
+            <span>Candidate Live Status & Task</span>
           </button>
 
           <button
             onClick={() => setActiveTab('employee')}
-            className={`flex-1 py-3 px-4 flex items-center justify-center gap-2 border-b-2 transition ${
+            className={`py-2.5 px-4 rounded-xl flex items-center justify-center gap-2 transition-all duration-200 ${
               activeTab === 'employee'
-                ? 'border-erp-primary text-erp-primary bg-white shadow-xs'
-                : 'border-transparent text-gray-500 hover:text-gray-800'
+                ? 'bg-[#034665] text-white shadow-md font-extrabold'
+                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/70'
             }`}
           >
-            <Lock size={16} /> Employee Sign In
+            <Lock size={16} className={activeTab === 'employee' ? 'text-blue-400' : ''} />
+            <span>Employee Access Portal</span>
           </button>
         </div>
 
-        {/* TAB 1: PUBLIC CANDIDATE STATUS & PRACTICAL TASK VIEWER */}
+        {/* TAB 1: PUBLIC CANDIDATE STATUS & PROTECTED PRACTICAL TASK VIEWER */}
         {activeTab === 'candidate' && (
-          <div className="p-6 space-y-5">
+          <div className="p-6 sm:p-8 space-y-6">
             <div className="text-center space-y-1">
-              <h3 className="text-sm font-bold text-erp-primary uppercase tracking-wide flex items-center justify-center gap-1.5">
-                <Search size={16} /> Track Candidate Live Interview Status
-              </h3>
-              <p className="text-xs text-gray-600">
+              <span className="px-3 py-1 bg-blue-50 text-blue-900 text-[11px] font-extrabold uppercase tracking-wider rounded-full inline-flex items-center gap-1 border border-blue-200 mb-1">
+                <Ticket size={12} className="text-[#034665]" /> Real-Time Candidate Tracker
+              </span>
+              <h3 className="text-lg font-black text-slate-900">Check Your Interview Round & Practical Task</h3>
+              <p className="text-xs text-slate-500 max-w-md mx-auto">
                 Enter your Candidate Code (e.g. CAND-1001), Token Number, Mobile Number, or Enrollment No.
               </p>
             </div>
 
             {/* Candidate Search Form */}
             <form onSubmit={handleCandidateSearch} className="space-y-3">
-              <div className="relative">
+              <div className="relative flex items-center">
                 <input
                   type="text"
                   required
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="e.g. CAND-1073 or 8200925369"
-                  className="erp-input pl-9 pr-24 text-xs font-semibold py-2.5"
+                  placeholder="Enter Candidate Code (e.g. CAND-1073) or Mobile No..."
+                  className="w-full pl-11 pr-32 py-3 bg-slate-50 border-2 border-slate-200 focus:border-[#034665] focus:bg-white rounded-xl text-xs font-bold text-slate-900 outline-none transition-all shadow-inner"
                 />
-                <Ticket className="absolute left-3 top-3 text-erp-primary" size={16} />
+                <Search className="absolute left-3.5 text-[#034665]" size={18} />
+                
                 <button
                   type="submit"
                   disabled={searching}
-                  className="absolute right-1 top-1 bottom-1 btn-erp-primary px-3 text-xs font-bold flex items-center gap-1"
+                  className="absolute right-1.5 py-2 px-4 bg-[#034665] hover:bg-[#023249] text-white text-xs font-bold rounded-lg transition-all shadow-md flex items-center gap-1.5 disabled:opacity-50"
                 >
-                  <Search size={13} /> {searching ? 'Searching...' : 'Check Status'}
+                  {searching ? 'Searching...' : (
+                    <>
+                      Track <ArrowRight size={13} />
+                    </>
+                  )}
                 </button>
               </div>
             </form>
 
             {searchError && (
-              <div className="p-3 bg-red-50 border border-red-300 text-red-800 text-xs font-semibold rounded text-center">
+              <div className="p-4 bg-rose-50 border border-rose-200 text-rose-800 text-xs font-bold rounded-xl text-center shadow-xs">
                 {searchError}
               </div>
             )}
 
-            {/* Candidate Status & Dossier Result Card */}
+            {/* Candidate Result Dossier */}
             {candidateResult && (
               <div className="space-y-4 animate-fadeIn">
-                <div className="p-4 bg-blue-50/70 border border-blue-200 rounded space-y-2 text-xs">
-                  <div className="flex items-center justify-between border-b border-blue-200 pb-2">
+                {/* Dossier Card Header */}
+                <div className="p-4 bg-gradient-to-r from-slate-900 via-[#034665] to-slate-900 text-white rounded-xl shadow-lg border border-slate-700 space-y-3">
+                  <div className="flex items-start justify-between border-b border-white/10 pb-3">
                     <div>
-                      <span className="text-[10px] text-gray-500 font-mono font-bold block">{candidateResult.candidateCode}</span>
-                      <h4 className="font-bold text-base text-blue-950">{candidateResult.fullName}</h4>
+                      <span className="text-[10px] text-blue-300 font-mono font-bold tracking-wider uppercase block">
+                        Candidate Code: {candidateResult.candidateCode}
+                      </span>
+                      <h4 className="font-black text-lg text-white tracking-wide">{candidateResult.fullName}</h4>
                     </div>
                     <StageBadge stage={candidateResult.stage} />
                   </div>
 
-                  <div className="grid grid-cols-2 gap-2 text-gray-700 pt-1">
-                    <div>Token #: <strong className="text-erp-primary font-mono">{candidateResult.tokenNumber}</strong></div>
-                    <div>Profile: <strong>{candidateResult.appliedProfileName}</strong></div>
-                    <div>College: <strong>{candidateResult.collegeName}</strong></div>
-                    <div>Branch: <strong>{candidateResult.branch}</strong></div>
+                  <div className="grid grid-cols-2 gap-3 text-xs text-slate-200">
+                    <div className="bg-white/10 p-2 rounded-lg backdrop-blur-xs">
+                      <span className="text-[10px] text-slate-400 font-medium block">Token Number</span>
+                      <strong className="text-yellow-400 font-mono text-sm">{candidateResult.tokenNumber}</strong>
+                    </div>
+
+                    <div className="bg-white/10 p-2 rounded-lg backdrop-blur-xs">
+                      <span className="text-[10px] text-slate-400 font-medium block">Applied Profile</span>
+                      <strong className="text-white text-xs truncate block">{candidateResult.appliedProfileName}</strong>
+                    </div>
+
+                    <div className="bg-white/10 p-2 rounded-lg backdrop-blur-xs">
+                      <span className="text-[10px] text-slate-400 font-medium block">College Name</span>
+                      <strong className="text-white text-xs truncate block">{candidateResult.collegeName}</strong>
+                    </div>
+
+                    <div className="bg-white/10 p-2 rounded-lg backdrop-blur-xs">
+                      <span className="text-[10px] text-slate-400 font-medium block">Branch</span>
+                      <strong className="text-white text-xs truncate block">{candidateResult.branch}</strong>
+                    </div>
                   </div>
                 </div>
 
                 {/* PRACTICAL TASKS SECTION (WITH STRICT ANTI-COPY PROTECTION) */}
                 {(candidateResult.stage.includes('PRACTICAL') || candidateResult.stage === 'TECHNICAL_COMPLETED') ? (
                   <div 
-                    className="p-4 border border-purple-300 bg-purple-50/40 rounded space-y-3 select-none pointer-events-auto"
+                    className="p-4 border-2 border-purple-300 bg-purple-50/60 rounded-xl space-y-3 shadow-md select-none"
                     onCopy={(e) => { e.preventDefault(); alert("Copying is disabled."); }}
                     onCut={(e) => { e.preventDefault(); alert("Copying is disabled."); }}
                     onContextMenu={(e) => e.preventDefault()}
                     style={{ userSelect: 'none', WebkitUserSelect: 'none', msUserSelect: 'none' }}
                   >
-                    <div className="flex items-center justify-between border-b border-purple-200 pb-1 text-purple-900">
-                      <h4 className="font-bold text-xs uppercase tracking-wide flex items-center gap-1.5">
-                        <FileCode size={16} /> Assigned Practical Tasks
+                    <div className="flex items-center justify-between border-b border-purple-200 pb-2">
+                      <h4 className="font-extrabold text-xs text-purple-950 uppercase tracking-wide flex items-center gap-1.5">
+                        <FileCode size={16} className="text-purple-700" /> Assigned Practical Coding Tasks
                       </h4>
-                      <span className="text-[10px] bg-purple-200 text-purple-950 font-bold px-2 py-0.5 rounded flex items-center gap-1">
-                        <ShieldAlert size={12} /> Protected (Copying Disabled)
+                      <span className="text-[10px] bg-purple-900 text-white font-extrabold px-2.5 py-0.5 rounded-full flex items-center gap-1 shadow-2xs">
+                        <ShieldAlert size={12} className="text-yellow-400" /> Protected (Anti-Copy On)
                       </span>
                     </div>
 
                     {practicalTasks.length === 0 ? (
-                      <div className="p-3 text-center text-xs text-gray-500">
-                        Task drawer loading... Please refresh if not loaded.
+                      <div className="p-4 text-center text-xs text-purple-800 font-semibold bg-white rounded-lg border border-purple-200">
+                        Task details loading...
                       </div>
                     ) : (
                       practicalTasks.map((task, idx) => (
                         <div 
                           key={idx} 
-                          className="p-3 bg-white border border-purple-200 rounded space-y-2 shadow-2xs select-none"
+                          className="p-3.5 bg-white border border-purple-200 rounded-lg space-y-2 shadow-xs select-none"
                           style={{ userSelect: 'none', WebkitUserSelect: 'none' }}
                         >
-                          <div className="flex items-start justify-between">
-                            <span className="font-bold text-purple-950 text-xs">Task #{idx + 1}: {task.taskTitle}</span>
-                            <span className="text-[10px] bg-purple-100 text-purple-900 font-bold px-1.5 py-0.5 rounded">
+                          <div className="flex items-center justify-between">
+                            <span className="font-black text-purple-950 text-xs sm:text-sm">Task #{idx + 1}: {task.taskTitle}</span>
+                            <span className="text-[10px] bg-purple-100 text-purple-900 font-extrabold px-2 py-0.5 rounded-md border border-purple-300">
                               Max Marks: {task.maxMarks} ({task.expectedTimeMinutes} mins)
                             </span>
                           </div>
 
-                          <p className="text-xs text-gray-800 font-mono bg-purple-50/50 p-2.5 border rounded leading-relaxed select-none">
+                          <p className="text-xs text-slate-800 font-mono bg-purple-50/70 p-3 border border-purple-100 rounded-lg leading-relaxed select-none">
                             {task.taskDescription}
                           </p>
                         </div>
@@ -231,8 +306,8 @@ export const Login = () => {
                     )}
                   </div>
                 ) : (
-                  <div className="p-3 bg-gray-50 border rounded text-center text-xs text-gray-600">
-                    Your current interview stage is <strong>{candidateResult.stage}</strong>. Practical tasks will appear here once pushed to Practical Round.
+                  <div className="p-4 bg-slate-100 border border-slate-200 rounded-xl text-center text-xs text-slate-700 font-medium">
+                    Current Stage: <strong className="text-[#034665]">{candidateResult.stage}</strong>. Practical coding tasks will appear here once you enter the Practical Round.
                   </div>
                 )}
               </div>
@@ -240,19 +315,27 @@ export const Login = () => {
           </div>
         )}
 
-        {/* TAB 2: EMPLOYEE SIGN IN PORTAL */}
+        {/* TAB 2: EMPLOYEE PORTAL LOGIN */}
         {activeTab === 'employee' && (
-          <div>
-            <form onSubmit={handleLoginSubmit} className="p-6 space-y-4">
+          <div className="p-6 sm:p-8 space-y-5">
+            <div className="text-center space-y-1">
+              <span className="px-3 py-1 bg-slate-100 text-slate-800 text-[11px] font-extrabold uppercase tracking-wider rounded-full inline-flex items-center gap-1 border border-slate-200 mb-1">
+                <Lock size={12} className="text-[#034665]" /> Authorized Personnel
+              </span>
+              <h3 className="text-lg font-black text-slate-900">Interviewer & Admin Sign In</h3>
+              <p className="text-xs text-slate-500">Sign in to access workstation queues, evaluation forms, and panel controls.</p>
+            </div>
+
+            <form onSubmit={handleLoginSubmit} className="space-y-4">
               {error && (
-                <div className="p-3 bg-red-100 border border-red-300 text-red-800 text-xs font-semibold rounded-xs">
+                <div className="p-3 bg-rose-50 border border-rose-200 text-rose-800 text-xs font-bold rounded-xl text-center">
                   {error}
                 </div>
               )}
 
               <div>
-                <label className="block text-xs font-bold text-gray-700 uppercase mb-1 flex items-center gap-1">
-                  <User size={13} /> Username or Email
+                <label className="block text-xs font-bold text-slate-700 uppercase mb-1 flex items-center gap-1">
+                  <User size={14} className="text-[#034665]" /> Username or Work Email
                 </label>
                 <input
                   type="text"
@@ -260,13 +343,13 @@ export const Login = () => {
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
                   placeholder="e.g. admin"
-                  className="erp-input"
+                  className="w-full px-3.5 py-2.5 bg-slate-50 border-2 border-slate-200 focus:border-[#034665] focus:bg-white rounded-xl text-xs font-bold text-slate-900 outline-none transition-all"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-gray-700 uppercase mb-1 flex items-center gap-1">
-                  <Lock size={13} /> Password
+                <label className="block text-xs font-bold text-slate-700 uppercase mb-1 flex items-center gap-1">
+                  <Lock size={14} className="text-[#034665]" /> Password
                 </label>
                 <input
                   type="password"
@@ -274,41 +357,41 @@ export const Login = () => {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••"
-                  className="erp-input"
+                  className="w-full px-3.5 py-2.5 bg-slate-50 border-2 border-slate-200 focus:border-[#034665] focus:bg-white rounded-xl text-xs font-bold text-slate-900 outline-none transition-all"
                 />
               </div>
 
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full btn-erp-primary py-2.5 text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2 mt-2"
+                className="w-full py-3 bg-[#034665] hover:bg-[#023249] text-white text-xs font-black uppercase tracking-wider rounded-xl transition-all shadow-md flex items-center justify-center gap-2"
               >
-                <KeyRound size={15} />
-                {loading ? 'Authenticating...' : 'Sign In to Portal'}
+                <KeyRound size={16} />
+                {loading ? 'Authenticating Credentials...' : 'Sign In to Workstation Portal'}
               </button>
             </form>
 
-            {/* Quick Demo Role Selector */}
-            <div className="p-4 bg-erp-bg border-t border-erp-border text-center">
-              <p className="text-[11px] font-bold text-gray-600 uppercase tracking-wider mb-2">
-                Quick Sign-In Presets:
+            {/* Quick Preset Selector */}
+            <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl text-center space-y-2">
+              <p className="text-[11px] font-black text-slate-600 uppercase tracking-wider">
+                Quick Sign-In Credentials Presets:
               </p>
               <div className="flex flex-wrap justify-center gap-2 text-[11px]">
                 <button
                   onClick={() => setFastCredentials('admin', 'Admin@123')}
-                  className="px-2.5 py-1 bg-erp-primary text-white rounded-xs font-semibold hover:opacity-90"
+                  className="px-3 py-1 bg-[#034665] text-white rounded-lg font-bold hover:opacity-90 transition shadow-2xs"
                 >
                   Super Admin
                 </button>
                 <button
                   onClick={() => setFastCredentials('vikram.tech', 'Tech@123')}
-                  className="px-2.5 py-1 bg-blue-700 text-white rounded-xs font-semibold hover:opacity-90"
+                  className="px-3 py-1 bg-blue-700 text-white rounded-lg font-bold hover:opacity-90 transition shadow-2xs"
                 >
-                  Technical Panel
+                  Technical Interviewer
                 </button>
                 <button
                   onClick={() => setFastCredentials('pooja.reception', 'Pooja@123')}
-                  className="px-2.5 py-1 bg-emerald-700 text-white rounded-xs font-semibold hover:opacity-90"
+                  className="px-3 py-1 bg-emerald-700 text-white rounded-lg font-bold hover:opacity-90 transition shadow-2xs"
                 >
                   Receptionist
                 </button>
@@ -316,11 +399,18 @@ export const Login = () => {
             </div>
           </div>
         )}
-      </div>
 
-      <div className="mt-6 text-center text-xs text-gray-500">
+        {/* Footer Security Badge Banner */}
+        <div className="p-3 bg-slate-100 border-t border-slate-200 text-center flex items-center justify-center gap-2 text-[11px] text-slate-600 font-semibold">
+          <ShieldCheck size={14} className="text-emerald-600" />
+          <span>256-Bit SSL Encrypted Enterprise Portal</span>
+        </div>
+      </main>
+
+      {/* Footer Branding */}
+      <footer className="mt-4 text-center text-xs text-slate-400 font-medium">
         &copy; {new Date().getFullYear()} Kevalon Technology Enterprise Systems. All rights reserved.
-      </div>
+      </footer>
     </div>
   );
 };
