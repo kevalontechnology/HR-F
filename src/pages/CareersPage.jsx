@@ -4,6 +4,7 @@ import {
   Sparkles, Globe, Shield, Phone, Mail, ArrowRight, Bookmark, Filter, RotateCcw, 
   Building2, GraduationCap, HeartHandshake, Zap, Calendar, Laptop, Check, X, ExternalLink
 } from 'lucide-react';
+import logoImg from '../Kevalon_Technology_Logo_Transparent.png';
 import { Button, Badge } from '../components/common/CorporateUI';
 import { Modal } from '../components/common/Modal';
 import { getApiUrl } from '../config/api';
