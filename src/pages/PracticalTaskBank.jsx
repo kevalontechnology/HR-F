@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { DataTable } from '../components/common/DataTable';
 import { Modal } from '../components/common/Modal';
-import { FileCode, Plus, Trash2, Edit, CheckSquare, Layers } from 'lucide-react';
+import { FileCode, Plus, Trash2, Edit, CheckSquare, SlidersHorizontal } from 'lucide-react';
 import { Badge } from '../components/common/Badge';
 
 export const PracticalTaskBank = () => {
@@ -12,8 +12,11 @@ export const PracticalTaskBank = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingId, setEditingId] = useState(null);
 
-  // Bulk Selection State
+  // Bulk Selection State & Smart Range Selector
   const [selectedIds, setSelectedIds] = useState([]);
+  const [rangeStart, setRangeStart] = useState('1');
+  const [rangeEnd, setRangeEnd] = useState('50');
+
   const [bulkProfileId, setBulkProfileId] = useState('');
   const [bulkDifficulty, setBulkDifficulty] = useState('');
 
@@ -56,6 +59,24 @@ export const PracticalTaskBank = () => {
     } else {
       setSelectedIds([...selectedIds, id]);
     }
+  };
+
+  // Smart Range Selector Logic (e.g. 51-100, 1-50, etc.)
+  const selectRange = (start, end) => {
+    const s = Number(start);
+    const e = Number(end);
+    if (!s || !e || s > e || s < 1) {
+      alert(`Please enter a valid range (e.g. From 1 to ${tasks.length})`);
+      return;
+    }
+
+    const startIndex = Math.max(0, s - 1);
+    const endIndex = Math.min(tasks.length, e);
+
+    const targetedRows = tasks.slice(startIndex, endIndex);
+    const targetIds = targetedRows.map(t => t._id);
+
+    setSelectedIds(targetIds);
   };
 
   const handleBulkUpdate = async (updateData, fieldLabel) => {
@@ -183,6 +204,12 @@ export const PracticalTaskBank = () => {
         />
       )
     },
+    { 
+      header: '# Row', 
+      accessor: '_id', 
+      width: '60px',
+      render: (t, rowIdx) => <span className="text-[10px] text-gray-500 font-mono font-bold">#{rowIdx + 1}</span> 
+    },
     { header: 'Task Title', accessor: 'taskTitle', render: t => <span className="font-bold text-erp-primary">{t.taskTitle}</span> },
     { header: 'Applied Profile', accessor: 'profileId', render: t => t.profileId?.title || 'N/A' },
     { header: 'Expected Time', accessor: 'expectedTimeMinutes', render: t => `${t.expectedTimeMinutes} mins` },
@@ -205,13 +232,69 @@ export const PracticalTaskBank = () => {
       <div className="bg-white p-4 border border-erp-border rounded-xs shadow-xs flex items-center justify-between">
         <div>
           <h2 className="text-base font-bold text-erp-primary uppercase tracking-wide flex items-center gap-2">
-            <FileCode size={18} /> Practical Task Bank & Bulk Controller
+            <FileCode size={18} /> Practical Task Bank & Smart Range Selector
           </h2>
-          <p className="text-xs text-gray-600">Select multiple tasks to bulk update profiles, difficulty levels, or delete.</p>
+          <p className="text-xs text-gray-600">Select custom range (e.g. 1-50 or 51-100) to bulk update profiles, difficulty levels, or delete.</p>
         </div>
         <button onClick={() => { setEditingId(null); resetForm(); setIsModalOpen(true); }} className="btn-erp-primary flex items-center gap-1">
           <Plus size={14} /> Add Practical Task
         </button>
+      </div>
+
+      {/* Smart Range Selector Control Bar */}
+      <div className="bg-white p-3 border border-erp-border rounded-xs shadow-xs flex flex-col md:flex-row items-center justify-between gap-3 text-xs">
+        <div className="flex items-center gap-2 font-bold text-erp-primary">
+          <SlidersHorizontal size={16} />
+          <span>Smart Range Selector:</span>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-2">
+          {/* Quick Presets */}
+          <div className="flex items-center gap-1">
+            <button onClick={() => selectRange(1, 50)} className="btn-erp-secondary text-xs py-1 px-2.5">First 50 (1-50)</button>
+            <button onClick={() => selectRange(1, 100)} className="btn-erp-secondary text-xs py-1 px-2.5">First 100 (1-100)</button>
+            <button onClick={() => selectRange(51, 100)} className="btn-erp-secondary text-xs py-1 px-2.5">51-100</button>
+            {tasks.length >= 50 && (
+              <button onClick={() => selectRange(tasks.length - 49, tasks.length)} className="btn-erp-secondary text-xs py-1 px-2.5">
+                Last 50
+              </button>
+            )}
+          </div>
+
+          {/* Custom Range Inputs */}
+          <div className="flex items-center gap-1.5 border-t sm:border-t-0 sm:border-l pl-0 sm:pl-3 border-gray-300 pt-2 sm:pt-0">
+            <span className="font-semibold text-gray-700">Custom:</span>
+            <input
+              type="number"
+              placeholder="From"
+              value={rangeStart}
+              onChange={e => setRangeStart(e.target.value)}
+              className="erp-input w-16 text-xs font-mono font-bold py-1 px-1.5"
+            />
+            <span>to</span>
+            <input
+              type="number"
+              placeholder="To"
+              value={rangeEnd}
+              onChange={e => setRangeEnd(e.target.value)}
+              className="erp-input w-16 text-xs font-mono font-bold py-1 px-1.5"
+            />
+            <button
+              onClick={() => selectRange(rangeStart, rangeEnd)}
+              className="btn-erp-primary text-xs py-1 px-2.5 font-bold"
+            >
+              Select
+            </button>
+            {selectedIds.length > 0 && (
+              <button
+                onClick={() => setSelectedIds([])}
+                className="text-red-600 hover:underline text-xs font-semibold ml-1"
+              >
+                Clear ({selectedIds.length})
+              </button>
+            )}
+          </div>
+        </div>
       </div>
 
       {/* Bulk Actions Toolbar Banner */}
@@ -267,7 +350,7 @@ export const PracticalTaskBank = () => {
       )}
 
       {/* Tasks Data Table */}
-      <DataTable columns={columns} data={tasks} searchPlaceholder="Search tasks..." />
+      <DataTable columns={columns} data={tasks} searchPlaceholder="Search tasks..." defaultPageSize={50} />
 
       {/* Add / Edit Task Modal */}
       <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title={editingId ? "Edit Practical Task" : "Create Practical Task"}>
