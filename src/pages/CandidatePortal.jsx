@@ -1,19 +1,25 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   LayoutDashboard, FileText, Bookmark, Calendar, FolderCheck, User, Bell, Settings, LogOut,
   Sparkles, CheckCircle2, Clock, MapPin, Globe, ExternalLink, RefreshCw, Upload, Trash2,
-  FileCode, ShieldAlert, AlertTriangle, Phone, Mail, Award, Check, X, Eye, Download, Video, ShieldCheck
+  FileCode, ShieldAlert, AlertTriangle, Phone, Mail, Award, Check, X, Eye, Download, Video, ShieldCheck, Volume2
 } from 'lucide-react';
+import logoImg from '../Kevalon_Technology_Logo_Transparent.png';
 import { Button, Badge, ConfirmationModal, EmptyState } from '../components/common/CorporateUI';
 import { Modal } from '../components/common/Modal';
 import { StageBadge } from '../components/common/Badge';
 import { getApiUrl } from '../config/api';
+import { playNotificationChimeSound, triggerDesktopNotification, requestWebNotificationPermission } from '../utils/webNotification';
 
 export const CandidatePortal = ({ candidate: initialCandidate, onLogout }) => {
   const [candidate, setCandidate] = useState(initialCandidate);
   const [sidebarTab, setSidebarTab] = useState('dashboard');
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [lastRefreshedAt, setLastRefreshedAt] = useState(new Date());
+
+  // Track previous stage and interviewer for chime sound trigger
+  const prevStageRef = useRef(initialCandidate?.stage);
+  const prevInterviewerRef = useRef(initialCandidate?.assignedInterviewerName);
 
   // Delete Account Confirmation Modal State
   const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -44,7 +50,7 @@ export const CandidatePortal = ({ candidate: initialCandidate, onLogout }) => {
     interviewReminders: true
   });
 
-  // REAL-TIME AUTO REFRESH POLLING (SYNC LIVE CANDIDATE STAGE & INTERVIEWER)
+  // REAL-TIME AUTO REFRESH POLLING & CHIME SOUND ALERT TRIGGER
   const refreshLiveCandidateData = async () => {
     if (!candidate?.candidateCode && !candidate?.mobile) return;
     setIsRefreshing(true);
@@ -56,6 +62,24 @@ export const CandidatePortal = ({ candidate: initialCandidate, onLogout }) => {
       const data = await res.json();
 
       if (data.success && data.candidate) {
+        const newStage = data.candidate.stage;
+        const newInterviewer = data.candidate.assignedInterviewerName;
+
+        // If stage or interviewer changed, trigger Chime Sound Alert & Desktop Web Notification!
+        if (
+          (prevStageRef.current && prevStageRef.current !== newStage) ||
+          (prevInterviewerRef.current && prevInterviewerRef.current !== newInterviewer)
+        ) {
+          playNotificationChimeSound();
+          triggerDesktopNotification(
+            `🔔 Live Call Update: ${newStage}`,
+            `Assigned Panel: ${newInterviewer || 'Interviewer Station'}. Token: ${data.candidate.tokenNumber || 'TK-101'}`
+          );
+        }
+
+        prevStageRef.current = newStage;
+        prevInterviewerRef.current = newInterviewer;
+
         setCandidate(prev => ({
           ...prev,
           ...data.candidate,
@@ -74,7 +98,7 @@ export const CandidatePortal = ({ candidate: initialCandidate, onLogout }) => {
 
   useEffect(() => {
     refreshLiveCandidateData();
-    const interval = setInterval(refreshLiveCandidateData, 6000);
+    const interval = setInterval(refreshLiveCandidateData, 5000);
     return () => clearInterval(interval);
   }, []);
 
@@ -150,6 +174,18 @@ export const CandidatePortal = ({ candidate: initialCandidate, onLogout }) => {
         </div>
 
         <div className="flex items-center gap-3">
+          {/* Test Chime Sound Alert Button */}
+          <button
+            onClick={() => {
+              playNotificationChimeSound();
+              requestWebNotificationPermission();
+            }}
+            className="px-2.5 py-1 bg-yellow-400/20 hover:bg-yellow-400/30 text-yellow-300 border border-yellow-400/40 rounded-lg text-xs font-bold transition flex items-center gap-1 cursor-pointer"
+            title="Test Chime Sound Effect"
+          >
+            <Volume2 size={14} className="text-yellow-400 animate-pulse" /> Sound Alert On
+          </button>
+
           {/* Live Sync Badge */}
           <div className="hidden sm:flex items-center gap-2 px-3 py-1 bg-white/10 border border-white/20 rounded-lg text-[11px] font-bold text-emerald-300">
             <span className={`w-2 h-2 rounded-full bg-emerald-400 ${isRefreshing ? 'animate-ping' : ''}`}></span>
