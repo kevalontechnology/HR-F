@@ -90,7 +90,7 @@ export const Login = () => {
       }
     } catch (err) {
       setCandidateAuthError('Network error. Please try logging in again.');
-    } font: {
+    } finally {
       setCandidateAuthLoading(false);
     }
   };

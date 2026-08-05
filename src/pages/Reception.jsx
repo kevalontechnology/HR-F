@@ -60,7 +60,7 @@ export const Reception = () => {
       }
     } catch (err) {
       alert(err.message);
-    } font: {
+    } finally {
       setLoading(false);
     }
   };

@@ -55,7 +55,7 @@ export const PracticalWorkstation = () => {
       }
     } catch (err) {
       console.error(err);
-    } font: {
+    } finally {
       setInitialLoading(false);
     }
   };
