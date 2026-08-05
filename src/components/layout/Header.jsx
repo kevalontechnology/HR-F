@@ -91,33 +91,33 @@ export const Header = ({ mobileMenuOpen, setMobileMenuOpen }) => {
   };
 
   return (
-    <header className="bg-erp-primary text-white h-14 flex items-center justify-between px-3 sm:px-4 shadow-sm z-40 sticky top-0">
+    <header className="bg-erp-primary text-white h-14 flex items-center justify-between gap-2 px-3 sm:px-4 shadow-sm z-40 sticky top-0 overflow-hidden">
       {/* Brand & Mobile Hamburger Toggle */}
-      <div className="flex items-center gap-2 sm:gap-3">
+      <div className="flex min-w-0 flex-1 items-center gap-2 sm:gap-3">
         {/* Mobile Hamburger Toggle Button */}
         <button
           onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-          className="md:hidden p-1.5 hover:bg-white/10 rounded-xs text-white transition"
+          className="md:hidden shrink-0 p-1.5 hover:bg-white/10 rounded-xs text-white transition"
           aria-label="Toggle Navigation Menu"
         >
           {mobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
         </button>
 
         {/* Kevalon Technology Logo */}
-        <img src={logoImg} alt="Kevalon Technology Logo" className="h-8 sm:h-9 w-auto object-contain drop-shadow-xs" />
+        <img src={logoImg} alt="Kevalon Technology Logo" className="h-8 w-auto shrink-0 object-contain drop-shadow-xs sm:h-9" />
 
-        <div>
-          <h1 className="font-bold text-xs sm:text-sm md:text-base tracking-wider uppercase leading-tight">
+        <div className="min-w-0">
+          <h1 className="truncate font-bold text-[10px] sm:text-sm md:text-base tracking-wider uppercase leading-tight">
             Kevalon Technology
           </h1>
-          <p className="text-[9px] sm:text-[10px] text-gray-200 tracking-widest font-semibold uppercase hidden sm:block">
+          <p className="hidden text-[9px] text-gray-200 tracking-widest font-semibold uppercase sm:block sm:text-[10px]">
             Recruitment CRM Enterprise Edition
           </p>
         </div>
       </div>
 
       {/* Right Controls */}
-      <div className="flex items-center gap-2 sm:gap-3">
+      <div className="flex shrink-0 items-center gap-1.5 sm:gap-3">
         {/* Enable Desktop Web Notifications Button if not granted */}
         {webNotifPermission !== 'granted' && (
           <button
@@ -133,12 +133,12 @@ export const Header = ({ mobileMenuOpen, setMobileMenuOpen }) => {
         <div className="relative">
           <button
             onClick={() => setShowNotifications(!showNotifications)}
-            className="p-1.5 hover:bg-white/10 rounded-xs relative transition"
+            className="relative p-1.5 transition hover:bg-white/10 rounded-xs"
             title="Notifications"
           >
             <Bell size={18} />
             {unreadCount > 0 && (
-              <span className="absolute -top-1 -right-1 bg-red-600 text-white text-[10px] font-bold w-4 h-4 rounded-full flex items-center justify-center border border-erp-primary">
+              <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full border border-erp-primary bg-red-600 text-[10px] font-bold text-white">
                 {unreadCount}
               </span>
             )}
@@ -146,19 +146,19 @@ export const Header = ({ mobileMenuOpen, setMobileMenuOpen }) => {
 
           {/* Notification Dropdown Drawer */}
           {showNotifications && (
-            <div className="absolute right-0 mt-2 w-72 sm:w-80 bg-white text-gray-800 border border-erp-border rounded-xs shadow-xl z-50 overflow-hidden">
-              <div className="bg-erp-primary text-white px-3 py-2 text-xs font-semibold uppercase flex items-center justify-between">
-                <span>Notification Center</span>
-                <div className="flex items-center gap-2">
+            <div className="absolute right-0 z-50 mt-2 w-[min(19rem,calc(100vw-1.5rem))] overflow-hidden rounded-xs border border-erp-border bg-white text-gray-800 shadow-xl sm:w-80">
+              <div className="flex items-center justify-between gap-2 bg-erp-primary px-3 py-2 text-xs font-semibold uppercase text-white">
+                <span className="truncate">Notification Center</span>
+                <div className="flex items-center gap-1.5 sm:gap-2">
                   {webNotifPermission !== 'granted' && (
                     <button
                       onClick={handleEnableWebNotifications}
-                      className="text-[10px] bg-yellow-400 text-yellow-950 font-bold px-1.5 py-0.5 rounded flex items-center gap-0.5"
+                      className="flex items-center gap-0.5 rounded bg-yellow-400 px-1.5 py-0.5 text-[10px] font-bold text-yellow-950"
                     >
                       <Bell size={10} /> Enable Web Alerts
                     </button>
                   )}
-                  <span className="bg-white/20 px-1.5 py-0.5 rounded text-[10px]">{unreadCount} Unread</span>
+                  <span className="rounded bg-white/20 px-1.5 py-0.5 text-[10px]">{unreadCount} Unread</span>
                 </div>
               </div>
 
@@ -190,17 +190,17 @@ export const Header = ({ mobileMenuOpen, setMobileMenuOpen }) => {
         </div>
 
         {/* User Info & Actions */}
-        <div className="flex items-center gap-2 border-l border-white/20 pl-2 sm:pl-3 text-xs">
-          <div className="hidden sm:block text-right">
-            <div className="font-bold leading-none">{user?.fullName || user?.username}</div>
-            <div className="text-[10px] text-gray-300 font-semibold mt-0.5">
+        <div className="flex items-center gap-1.5 border-l border-white/20 pl-1.5 text-xs sm:gap-2 sm:pl-3">
+          <div className="hidden text-right sm:block">
+            <div className="truncate font-bold leading-none">{user?.fullName || user?.username}</div>
+            <div className="mt-0.5 text-[10px] font-semibold text-gray-300">
               {user?.role?.name || 'User'}
             </div>
           </div>
 
           <button
             onClick={() => setShowResetModal(true)}
-            className="p-1.5 hover:bg-white/10 rounded-xs transition"
+            className="shrink-0 p-1.5 hover:bg-white/10 rounded-xs transition"
             title="Reset Password"
           >
             <Key size={16} />
@@ -208,7 +208,7 @@ export const Header = ({ mobileMenuOpen, setMobileMenuOpen }) => {
 
           <button
             onClick={logout}
-            className="p-1.5 hover:bg-white/10 rounded-xs text-red-300 hover:text-red-100 transition"
+            className="shrink-0 p-1.5 hover:bg-white/10 rounded-xs text-red-300 hover:text-red-100 transition"
             title="Sign Out"
           >
             <LogOut size={16} />
